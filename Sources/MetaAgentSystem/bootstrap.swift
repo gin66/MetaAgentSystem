@@ -167,6 +167,15 @@ struct Bootstrap {
       eventLoopGroupProvider: .singleton,
       configuration: HTTPClient.Configuration(
         timeout: HTTPClient.Configuration.Timeout(connect: .seconds(30), read: .seconds(300))))
-    try await bootstrapNextSteps(client: client)
+    var error: Error? = nil
+    do {
+      try await bootstrapNextSteps(client: client)
+    } catch let e {
+      error = e
+    }
+    try await client.shutdown()
+    if let error {
+      throw error
+    }
   }
 }
