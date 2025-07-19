@@ -1,9 +1,10 @@
-// Unit Tests for Basic AI Algorithms
+// Unit tests for the new AI algorithm
 import XCTest
 @testable import MetaAgentSystem
-class AIAlgorithmTests: XCTestCase {
-    func testBasicAlgorithm() {
-        let agent = MetaAgent()
-        XCTAssertEqual(agent.basicAlgorithm(), "Basic AI algorithm functioning")
+class AiAlgorithmTests: XCTestCase {
+    func testMakeDecision() {
+        let data = ["input1", "input2"]
+        let decision = AiAlgorithm().makeDecision(data: data)
+        XCTAssertEqual(decision, "decision")
     }
 }

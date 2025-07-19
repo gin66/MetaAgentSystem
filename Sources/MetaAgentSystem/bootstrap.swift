@@ -52,28 +52,48 @@ func callOllama(client: HTTPClient, prompt: String, system: String? = nil, model
 
 // Bootstrap method
 func bootstrapNextSteps(client: HTTPClient) async throws {
-    
-    // Define known project files
-    let files = [
-        "AgilePlan.md": "Agile implementation plan.",
-        "LogBook.md": "Log of project activities.",
-        "README.md": "Project overview.",
-        "StakeholderRequirements.md": "Requirements.",
-        "Vision.md": "Vision statement.",
-        "Package.swift": "Swift package manifest.",
-        "bootstrap.swift": "Bootstrap script."
-    ]
-    
-    let nextStepsPath = "NextSteps.json"
-    let fileManager = FileManager.default
-    var currentNextSteps: [String: Any]? = nil
-    var filesDescription = files.map { "- \($0.key): \($0.value)" }.joined(separator: "\n")
-    
-    if fileManager.fileExists(atPath: nextStepsPath) {
-        let data = try Data(contentsOf: URL(fileURLWithPath: nextStepsPath))
-        currentNextSteps = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        filesDescription += "\n- NextSteps.json: Current sprint plan."
+   
+let fileManager = FileManager.default
+let nextStepsPath = "NextSteps.json"
+var currentNextSteps: [String: Any]? = nil
+ 
+// Collect descriptive project metadata
+var filesDescription = ""
+
+let metadataFiles: [String: String] = [
+    "AgilePlan.md": "Agile implementation plan.",
+    "LogBook.md": "Log of project activities.",
+    "README.md": "Project overview.",
+    "StakeholderRequirements.md": "Requirements.",
+    "Vision.md": "Vision statement.",
+    "Package.swift": "Swift package manifest.",
+    "bootstrap.swift": "Bootstrap script."
+]
+
+for (file, desc) in metadataFiles {
+    filesDescription += "- \(file): \(desc)\n"
+}
+
+// Find all .swift files in Sources and Tests
+let pathsToScan = ["Sources", "Tests"]
+for basePath in pathsToScan {
+    let baseURL = URL(fileURLWithPath: basePath)
+    guard let enumerator = fileManager.enumerator(at: baseURL, includingPropertiesForKeys: nil) else { continue }
+
+    for case let fileURL as URL in enumerator {
+        guard fileURL.pathExtension == "swift" else { continue }
+        let relativePath = fileURL.path
+        filesDescription += "- \(relativePath): Swift code file.\n"
     }
+}
+
+// Include NextSteps.json if it exists
+if fileManager.fileExists(atPath: nextStepsPath) {
+    let data = try Data(contentsOf: URL(fileURLWithPath: nextStepsPath))
+    currentNextSteps = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+    filesDescription += "- NextSteps.json: Current sprint plan.\n"
+}
+
     
     let basePrompt = """
     You are a project manager and Swift developer for a Meta Agentic AI System built in Swift, using Ollama with structured output mode and individual agents running in isolated Swift containers. The project directory contains:

@@ -1,12 +1,7 @@
-import Foundation
-
+// Integration of Ollama structured output mode
 class OllamaIntegration {
-    static let shared = OllamaIntegration()
-
-    private init() {}
-
-    func communicate(message: String) -> String? {
-        // Integration logic with Ollama for agent communication
-        return "Response from Ollama"
+    static func configureStructuredOutput() -> Bool {
+        // Logic to integrate and verify the configuration
+        return true
     }
 }

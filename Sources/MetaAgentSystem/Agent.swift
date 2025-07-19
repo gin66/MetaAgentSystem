@@ -1,11 +1,11 @@
-// Agent Implementation
+// Basic agent definition
 import Foundation
-class Agent: AgentCommunicationProtocol {
-    private var messages = [Int:String]()
-    func sendMessage(_ message: String, to agentID: Int) {
-        messages[agentID] = message
-    }
-    func receiveMessage(from agentID: Int) -> String? {
-        return messages[agentID]
-    }
+public class Agent {
+	private var id: String
+	init(id: String) {
+		self.id = id
+	}
+	func executeTask() {
+		// Task execution logic here
+	}
 }
