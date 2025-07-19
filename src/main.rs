@@ -1,136 +1,93 @@
-use dotenvy::dotenv;
-use openai_rust::chat::{ChatArguments, Message as OpenAiMessage};
-use openai_rust::Client as OpenAiClient;
-use rand::Rng;
-use reqwest::Client as ReqwestClient;
-use schemars::{schema_for, JsonSchema};
+use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
-use std::env;
-use validator::Validate;
+use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Debug, Validate, JsonSchema)]
-struct MyData {
-    #[validate(length(min = 1))]
-    name: String,
-    #[validate(length(min = 1))]
-    value: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct OllamaMessage {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct Agent {
+    id: String,
     role: String,
-    content: String,
+    performance_score: f32,
 }
 
-#[derive(Serialize)]
-struct OllamaRequest {
-    model: String,
-    messages: Vec<OllamaMessage>,
-    stream: bool,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+enum TaskStatus {
+    Pending,
+    InProgress,
+    Completed,
 }
 
-#[derive(Deserialize, Debug)]
-struct OllamaResponse {
-    message: OllamaMessage,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct Task {
+    id: String,
+    description: String,
+    assigned_agent_id: Option<String>,
+    status: TaskStatus,
 }
 
-async fn request_openai(
-    api_key: &str,
-    system_prompt: &str,
-    user_prompt: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let client = OpenAiClient::new(api_key);
-    let args = ChatArguments::new(
-        "gpt-3.5-turbo",
-        vec![
-            OpenAiMessage {
-                role: "system".to_owned(),
-                content: system_prompt.to_owned(),
-            },
-            OpenAiMessage {
-                role: "user".to_owned(),
-                content: user_prompt.to_owned(),
-            },
-        ],
-    );
-    let res = client.create_chat(args).await?;
-    Ok(res.choices.get(0).unwrap().message.content.clone())
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
 }
 
-async fn request_ollama(
-    system_prompt: &str,
-    user_prompt: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let client = ReqwestClient::new();
-    let ollama_url = "http://localhost:11434/api/chat";
-    let request_payload = OllamaRequest {
-        model: "mistral-small3.2:latest".to_string(),
-        messages: vec![
-            OllamaMessage {
-                role: "system".to_string(),
-                content: system_prompt.to_string(),
-            },
-            OllamaMessage {
-                role: "user".to_string(),
-                content: user_prompt.to_string(),
-            },
-        ],
-        stream: false,
-    };
-
-    let res = client
-        .post(ollama_url)
-        .json(&request_payload)
-        .send()
-        .await?;
-
-    let ollama_response = res.json::<OllamaResponse>().await?;
-    let content = ollama_response.message.content.trim();
-    let json_content = content
-        .trim_start_matches("```json")
-        .trim_start_matches("```")
-        .trim_end_matches("```")
-        .trim();
-    Ok(json_content.to_string())
+#[derive(Subcommand)]
+enum Commands {
+    /// Create a new agent
+    CreateAgent {
+        /// The role of the agent
+        #[arg(short, long)]
+        role: String,
+    },
+    /// List all agents
+    ListAgents,
+    /// Create a new task
+    CreateTask {
+        /// The description of the task
+        #[arg(short, long)]
+        description: String,
+    },
+    /// List all tasks
+    ListTasks,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv().ok();
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cli = Cli::parse();
 
-    let schema = schema_for!(MyData);
-    let schema_str = serde_json::to_string_pretty(&schema).unwrap();
+    // In-memory storage
+    let mut agents: Vec<Agent> = Vec::new();
+    let mut tasks: Vec<Task> = Vec::new();
 
-    let system_prompt = format!(
-        "You are a helpful assistant that provides structured JSON output. \
-        The JSON object must conform to the following JSON Schema: \n\n{}",
-        schema_str
-    );
-    let random_number = rand::thread_rng().gen_range(1..=1000);
-    let user_prompt = format!(
-        "Generate a JSON object with a name and a value. Include the number {} in the value.",
-        random_number
-    );
-
-    let api_key = env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set");
-
-    let response_content = match request_openai(&api_key, &system_prompt, &user_prompt).await {
-        Ok(content) => content,
-        Err(e) => {
-            if e.to_string().contains("quota") {
-                println!("OpenAI quota exceeded, falling back to Ollama.");
-                request_ollama(&system_prompt, &user_prompt).await?
-            } else {
-                return Err(e);
-            }
+    match &cli.command {
+        Commands::CreateAgent { role } => {
+            let new_agent = Agent {
+                id: Uuid::new_v4().to_string(),
+                role: role.clone(),
+                performance_score: 0.0,
+            };
+            println!("Created agent: {:?}", new_agent);
+            // In a real application, you would save this to a file or database.
+            // For now, we just print it.
         }
-    };
-
-    println!("{}", response_content);
-
-    let json_response: MyData = serde_json::from_str(&response_content)?;
-    json_response.validate()?;
-    println!("{:?}", json_response);
+        Commands::ListAgents => {
+            // In a real application, you would load this from a file or database.
+            println!("Listing all agents: {:?}", agents);
+        }
+        Commands::CreateTask { description } => {
+            let new_task = Task {
+                id: Uuid::new_v4().to_string(),
+                description: description.clone(),
+                assigned_agent_id: None,
+                status: TaskStatus::Pending,
+            };
+            println!("Created task: {:?}", new_task);
+            // In a real application, you would save this to a file or database.
+        }
+        Commands::ListTasks => {
+            // In a real application, you would load this from a file or database.
+            println!("Listing all tasks: {:?}", tasks);
+        }
+    }
 
     Ok(())
 }
