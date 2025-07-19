@@ -1,18 +1,16 @@
 {
+  "goal" : "Integrate and validate agent communication protocol",
+  "acceptance_criteria" : [
+    "All unit tests pass for AgentCommunicationProtocolTests.swift",
+    "Bootstrap process initializes at least two agents successfully",
+    "Inter-agent message passing is confirmed via logs"
+  ],
   "sprint_number" : 2,
   "tasks" : [
-    "Define protocol for inter-agent communication",
-    "Develop message serialization\/deserialization logic",
-    "Create unit tests for communication protocols",
-    "Update README.md with communication guidelines",
-    "Integrate communication module into the main system"
+    "Implement basic message passing between agents in AgentCommunicationProtocol.swift",
+    "Create unit tests for message passing in AgentCommunicationProtocolTests.swift",
+    "Update bootstrap process to initialize multiple agents in bootstrap.swift",
+    "Document new functionalities in LogBook.md"
   ],
-  "deliverable" : "Functional inter-agent communication module",
-  "acceptance_criteria" : [
-    "Communication protocol is documented in Vision.md",
-    "All unit tests pass for message serialization\/deserialization",
-    "Inter-agent communication works as expected",
-    "LogBook.md updated with implementation details"
-  ],
-  "goal" : "Implement core functionality for agent communication"
+  "deliverable" : "Functional inter-agent communication with automated tests and updated documentation"
 }

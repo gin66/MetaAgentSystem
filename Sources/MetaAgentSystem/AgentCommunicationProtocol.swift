@@ -1,17 +1,10 @@
-// Implementation of basic agent communication protocol
+//
+// AgentCommunicationProtocol.swift
+// Definition of the communication protocol between agents.
+//
 import Foundation
+
 protocol AgentCommunicationProtocol {
-    func send(message: String) throws -> Bool
-    func receive() throws -> String?
-}
-class SimpleAgentCommunication: AgentCommunicationProtocol {
-    private var messages: [String] = []
-    func send(message: String) throws -> Bool {
-        messages.append(message)
-        return true
-    }
-    func receive() throws -> String? {
-        guard !messages.isEmpty else { return nil }
-        return messages.removeFirst()
-    }
+    func sendMessage(to agent: String, message: Data) throws -> Void
+    func receiveMessage(from agent: String) throws -> Data?
 }
