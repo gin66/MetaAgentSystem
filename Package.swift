@@ -26,7 +26,20 @@ let package = Package(
                 .product(name: "SwiftyJSON", package: "SwiftyJSON")
             ]
         ),
-      .testTarget(
+        .executableTarget(
+            name: "Bootstrap",
+            dependencies: [
+                .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+                .product(name: "OpenAPIKit", package: "OpenAPIKit"),
+                .product(name: "NIO", package: "swift-nio"),
+                .product(name: "NIOHTTP1", package: "swift-nio"),
+                .product(name: "NIOFoundationCompat", package: "swift-nio"),
+                .product(name: "NIOExtras", package: "swift-nio-extras"),
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+                .product(name: "SwiftyJSON", package: "SwiftyJSON")
+            ]
+        ),
+     .testTarget(
          name: "MetaAgentSystemTests",
          dependencies: ["MetaAgentSystem"]
       )
