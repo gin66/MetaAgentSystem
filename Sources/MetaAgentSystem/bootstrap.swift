@@ -3,17 +3,21 @@ import OpenAPIKit
 import AsyncHTTPClient
 
 // Function to call Ollama API
-func callOllama(client: HTTPClient, prompt: String, model: String = "devstral") async throws -> [String: Any] {
+func callOllama(client: HTTPClient, prompt: String, system: String? = nil, model: String = "devstral") async throws -> [String: Any] {
     var request = HTTPClientRequest(url: "http://localhost:11434/api/generate")
     request.method = .POST
     request.headers.add(name: "Content-Type", value: "application/json")
     
-    let requestBody: [String: Any] = [
+    var requestBody: [String: Any] = [
         "model": model,
         "prompt": prompt,
         "format": "json",
         "stream": false
     ]
+    
+    if let system = system {
+        requestBody["system"] = system
+    }
     
     let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
     request.body = .bytes(jsonData)
@@ -24,16 +28,25 @@ func callOllama(client: HTTPClient, prompt: String, model: String = "devstral") 
         throw NSError(domain: "", code: Int(response.status.code), userInfo: [NSLocalizedDescriptionKey: "HTTP error"])
     }
     
-    let body = try await response.body.collect(upTo: 1024 * 1024)
+    let body = try await response.body.collect(upTo: 1024 * 1024 * 5) // Increase buffer
     let data = Data(buffer: body)
+    print("Raw Ollama response: \(String(data: data, encoding: .utf8) ?? "No data")")
     
-    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-          let responseString = json["response"] as? String,
+    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse JSON"])
+    }
+    
+    if let error = json["error"] as? String {
+        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: error])
+    }
+    
+    guard let responseString = json["response"] as? String,
           let responseData = responseString.data(using: .utf8),
           let result = try JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
         throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse LLM response"])
     }
     
+    print("Parsed LLM result: \(result)")
     return result
 }
 
@@ -70,6 +83,8 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
     Use structured JSON output.
     """
     
+    let systemPrompt = "You must output ONLY the exact JSON structure requested in the prompt, with no additional text, explanations, or wrappers. Follow the output format precisely."
+    
     if let current = currentNextSteps {
         // Prompt to generate artifacts for current sprint
         let implPrompt = """
@@ -83,7 +98,7 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
         Output JSON: {"files": [{"path": "Sources/MetaAgentSystem/File.swift", "content": "code here"}, ...]}
         """
         
-        let implResponse = try await callOllama(client: client, prompt: implPrompt)
+        let implResponse = try await callOllama(client: client, prompt: implPrompt, system: systemPrompt)
         
         if let filesArray = implResponse["files"] as? [[String: String]] {
             for file in filesArray {
@@ -94,6 +109,8 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
                     print("Created/Updated: \(path)")
                 }
             }
+        } else {
+            print("No files generated in response.")
         }
     }
     
@@ -107,24 +124,17 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
     Ensure tasks advance development, are testable, and create artifacts in Sources and Tests where applicable.
     """
     
-    let nextResponse = try await callOllama(client: client, prompt: nextPrompt)
+    let nextResponse = try await callOllama(client: client, prompt: nextPrompt, system: systemPrompt)
     
     let outputData = try JSONSerialization.data(withJSONObject: nextResponse, options: .prettyPrinted)
     try outputData.write(to: URL(fileURLWithPath: nextStepsPath))
     print("NextSteps.json updated")
 }
 
-// Run
-let semaphore = DispatchSemaphore(value: 0)
-let client = HTTPClient(eventLoopGroupProvider: .singleton, configuration: HTTPClient.Configuration(timeout: HTTPClient.Configuration.Timeout(connect: .seconds(30), read: .seconds(120))))
-
-Task {
-    do {
+@main
+struct Bootstrap {
+    static func main() async throws {
+        let client = HTTPClient(eventLoopGroupProvider: .singleton, configuration: HTTPClient.Configuration(timeout: HTTPClient.Configuration.Timeout(connect: .seconds(30), read: .seconds(300))))
         try await bootstrapNextSteps(client: client)
-    } catch {
-        print("Error: \(error.localizedDescription)")
     }
-    semaphore.signal()
 }
-
-semaphore.wait()
