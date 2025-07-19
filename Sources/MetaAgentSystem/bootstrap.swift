@@ -11,10 +11,17 @@ final class HTTPResponseHandler: ChannelInboundHandler, @unchecked Sendable {
     
     private let promise: EventLoopPromise<ByteBuffer>
     private var responseBuffer: ByteBuffer
+    private var isComplete = false
     
     init(eventLoop: EventLoop) {
         self.promise = eventLoop.makePromise()
         self.responseBuffer = ByteBufferAllocator().buffer(capacity: 1024 * 1024)
+    }
+    
+    deinit {
+        if !isComplete {
+            promise.fail(ChannelError.alreadyClosed)
+        }
     }
     
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
@@ -23,7 +30,8 @@ final class HTTPResponseHandler: ChannelInboundHandler, @unchecked Sendable {
         case .body(let buffer):
             var mutableBuffer = buffer
             responseBuffer.writeBuffer(&mutableBuffer)
-        case .end:
+        case .end(_):
+            isComplete = true
             promise.succeed(responseBuffer)
         default:
             break
@@ -33,6 +41,12 @@ final class HTTPResponseHandler: ChannelInboundHandler, @unchecked Sendable {
     func errorCaught(context: ChannelHandlerContext, error: Error) {
         promise.fail(error)
         context.close(promise: nil)
+    }
+    
+    func channelInactive(context: ChannelHandlerContext) {
+        if !isComplete {
+            promise.fail(ChannelError.inputClosed)
+        }
     }
     
     func getResponse() -> EventLoopFuture<ByteBuffer> {
@@ -69,7 +83,7 @@ func bootstrapNextSteps() async throws {
     let ollamaPort = 11434
     let ollamaPath = "/api/generate"
     let requestBody: [String: Any] = [
-        "model": "llama3",
+        "model": "devstral",
         "prompt": prompt,
         "format": "json",
         "stream": false
@@ -153,10 +167,15 @@ func bootstrapNextSteps() async throws {
 }
 
 // Run bootstrap method
+let semaphore = DispatchSemaphore(value: 0)
+
 Task {
     do {
         try await bootstrapNextSteps()
     } catch {
         print("Error: \(error.localizedDescription)")
     }
+    semaphore.signal()
 }
+
+semaphore.wait()
