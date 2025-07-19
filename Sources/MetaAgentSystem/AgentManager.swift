@@ -1,5 +1,4 @@
-// Swift package to manage agent interactions
-import Foundation
-class AgentManager {
-    // Implementation details for managing agents...
+// Agent lifecycle management
+struct AgentManager {
+    // Lifecycle management logic here
 }

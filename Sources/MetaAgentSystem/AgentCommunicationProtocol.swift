@@ -1,6 +1,5 @@
-// Basic communication protocol between agents
-import Foundation
+// Define communication protocols for agents
 protocol AgentCommunicationProtocol {
-	func sendMessage(_ message: String, toAgent agentId: String) -> Bool
-	func receiveMessage() -> String?
+    func send(message: String)
+    func receive() -> String?
 }

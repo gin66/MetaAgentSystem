@@ -1,8 +1,7 @@
-// Task dashboard UI design
+// Create initial UI components for user interactions
 import SwiftUI
 struct TaskDashboardView: View {
     var body: some View {
-        Text("Task Dashboard")
-            .padding()
+        Text("Welcome to the Task Dashboard")
     }
 }

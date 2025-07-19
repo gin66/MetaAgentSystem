@@ -1,12 +1,10 @@
-// Unit Tests for Agent Communication Protocol
+// Test the communication protocols for agents
 import XCTest
 @testable import MetaAgentSystem
-
 class AgentCommunicationProtocolTests: XCTestCase {
     func testSendMessage() {
-        // Implement tests for sendMessage function
-    }
-    func testReceiveMessage() {
-        // Implement tests for receiveMessage function
+        let messageHandler = MessageHandler()
+        messageHandler.send(message: "Test Message")
+        // Assert sending logic here
     }
 }

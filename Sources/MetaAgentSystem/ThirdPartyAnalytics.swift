@@ -1,7 +1,7 @@
-// Third-party analytics tools integrated
+// Integrate third-party analytics tracking
 import Foundation
-struct ThirdPartyAnalytics {
+class ThirdPartyAnalytics {
     func trackEvent(eventName: String) {
-        print("Tracking event: \(eventName)")
+        // Code to send event data to analytics service
     }
 }

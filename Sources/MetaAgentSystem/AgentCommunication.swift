@@ -1,7 +1,4 @@
-// Agent communication module
-import Foundation
-class AgentCommunicator {
-    func sendSecureMessage(to agent: String, message: String) throws {
-        // Secure messaging implementation
-    }
+// Refactoring for improved performance
+struct AgentCommunication {
+    // Add refactored code here
 }

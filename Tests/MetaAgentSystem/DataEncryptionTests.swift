@@ -1,8 +1,7 @@
+// Integration tests for DataEncryption
 import XCTest
-@testable import MetaAgentSystem
-
 class DataEncryptionTests: XCTestCase {
-    func testEncryption() {
-        // Implement unit tests for encryption here
+    func testDataEncryption() {
+        // Add integration tests here
     }
 }

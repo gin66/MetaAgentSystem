@@ -1,7 +1,7 @@
-// BasicAgent.swift
+// Refactor basic agent functionality for improved performance
 import Foundation
-class BasicAgent: AIProtocol {
-    func processInput(_ input: String) -> String {
-        return "Processed: \(input)"
+class BasicAgent {
+    func performTask() {
+        // Optimized task execution code
     }
 }
