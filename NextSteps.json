@@ -1,18 +1,19 @@
 {
-  "acceptance_criteria" : [
-    "All agents can exchange structured data using SwiftyJSON",
-    "Central logger captures all agent activities",
-    "Unit tests pass for inter-agent communication",
-    "Documentation is updated in LogBook.md"
-  ],
-  "deliverable" : "Updated communication protocols and logging system",
-  "goal" : "Enhance agentic AI system with improved inter-agent communication and logging",
   "sprint_number" : 2,
   "tasks" : [
-    "Update StakeholderRequirements.md to include new communication protocols",
-    "Implement SwiftyJSON for structured data exchange between agents",
-    "Develop a central logger for all agent activities in Sources\/Logging.swift",
-    "Add unit tests for inter-agent communication in Tests\/CommunicationTests.swift",
-    "Document changes in LogBook.md"
+    "Develop communication protocol between agents.",
+    "Create initial task assignment and monitoring system.",
+    "Write unit tests for agent communication module.",
+    "Design UI for task dashboard.",
+    "Set up CI\/CD pipeline."
+  ],
+  "deliverable" : "Functional prototype of agent communication and task management.",
+  "goal" : "Implement core functionality for agent communication and task management",
+  "acceptance_criteria" : [
+    "Agents can communicate and exchange data.",
+    "Tasks can be assigned, monitored, and completed.",
+    "Communication module has 90% test coverage.",
+    "Task dashboard UI is implemented and functional.",
+    "CI\/CD pipeline is set up and tested."
   ]
 }
