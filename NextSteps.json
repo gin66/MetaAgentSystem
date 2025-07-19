@@ -1,44 +1,28 @@
 {
-  "goal" : "Enhance core functionalities and improve system integration",
+  "sprint_number" : 2,
+  "goal" : "Enhance Meta Agentic AI System with improved agent communication and testing framework.",
+  "acceptance_criteria" : [
+    "All inter-agent communication should be done using the new protocol.",
+    "Unit tests for the new protocol should pass with a coverage of at least 90%.",
+    "Agents running in isolated containers should not interfere with each other's operations.",
+    "README.md should have clear instructions for setting up and running containerized agents."
+  ],
+  "tasks" : [
+    "Develop a new protocol for inter-agent communication using Swift.",
+    "Implement unit tests for the new communication protocol in Tests directory.",
+    "Create isolated containers for each agent as per security guidelines.",
+    "Update README.md to include setup instructions for containerized agents."
+  ],
   "deliverable" : {
-    "test_files" : [
+    "artifact" : [
       {
-        "module" : "Tests",
-        "file" : "DataEncryptionTests.swift"
+        "name" : "CommunicationProtocol.swift",
+        "location" : "Sources"
       },
       {
-        "module" : "Tests",
-        "file" : "LogManagerTests.swift"
-      }
-    ],
-    "code_changes" : [
-      {
-        "module" : "Security",
-        "file" : "DataEncryption.swift"
-      },
-      {
-        "module" : "Utilities",
-        "file" : "SharedFunctions.swift"
-      },
-      {
-        "module" : "Logging",
-        "file" : "LogManager.swift"
+        "name" : "CommunicationTests.swift",
+        "location" : "Tests"
       }
     ]
-  },
-  "tasks" : [
-    "Implement data encryption for secure communication between agents.",
-    "Develop unit tests for the new encryption module.",
-    "Create a shared utility library for common functions used across agents.",
-    "Integrate logging mechanisms to capture detailed operational logs.",
-    "Write acceptance tests for the logging feature."
-  ],
-  "sprint_number" : 2,
-  "acceptance_criteria" : [
-    "All communication between agents is encrypted.",
-    "Unit tests for the encryption module pass without errors.",
-    "Shared functions are reused across all agent containers.",
-    "Operational logs capture detailed information about system activities.",
-    "Acceptance tests for logging validate correct log entries."
-  ]
+  }
 }

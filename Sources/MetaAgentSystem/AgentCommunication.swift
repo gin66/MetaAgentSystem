@@ -1,6 +1,5 @@
+// Secure message passing protocol between agents
 import Foundation
-
-protocol AgentCommunication {
-    func sendMessage(_ message: String, to agentId: Int)
-    func receiveMessage() -> String?
+class AgentCommunication {
+    // Implementation details for secure communication...
 }
