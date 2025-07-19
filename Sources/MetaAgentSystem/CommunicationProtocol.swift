@@ -1,5 +1,5 @@
-// Communication protocol for Meta Agentic AI System
+// Define the communication protocol for agents
 protocol CommunicationProtocol {
-    func sendMessage(_ message: String)
-    func receiveMessage() -> String?
+    func send(message: String)
+    func receive() -> String?
 }

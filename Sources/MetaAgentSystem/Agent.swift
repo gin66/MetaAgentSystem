@@ -1,11 +1,11 @@
+// Agent Implementation
 import Foundation
-
-class Agent {
-    private var state: [String: Any] = [:]
-
-    init() {}
-
-    func performTask() {
-        // Task logic here
+class Agent: AgentCommunicationProtocol {
+    private var messages = [Int:String]()
+    func sendMessage(_ message: String, to agentID: Int) {
+        messages[agentID] = message
+    }
+    func receiveMessage(from agentID: Int) -> String? {
+        return messages[agentID]
     }
 }

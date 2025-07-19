@@ -1,5 +1,7 @@
-// Secure message passing protocol between agents
+// Agent communication module
 import Foundation
-class AgentCommunication {
-    // Implementation details for secure communication...
+class AgentCommunicator {
+    func sendSecureMessage(to agent: String, message: String) throws {
+        // Secure messaging implementation
+    }
 }
