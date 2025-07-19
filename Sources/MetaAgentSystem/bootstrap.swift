@@ -18,7 +18,7 @@ func callOllama(client: HTTPClient, prompt: String, model: String = "devstral") 
     let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
     request.body = .bytes(jsonData)
     
-    let response = try await client.execute(request, timeout: .seconds(30))
+    let response = try await client.execute(request, timeout: .seconds(120))
     
     guard response.status == .ok else {
         throw NSError(domain: "", code: Int(response.status.code), userInfo: [NSLocalizedDescriptionKey: "HTTP error"])
@@ -116,7 +116,7 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
 
 // Run
 let semaphore = DispatchSemaphore(value: 0)
-let client = HTTPClient(eventLoopGroupProvider: .singleton)
+let client = HTTPClient(eventLoopGroupProvider: .singleton, configuration: HTTPClient.Configuration(timeout: HTTPClient.Configuration.Timeout(connect: .seconds(30), read: .seconds(120))))
 
 Task {
     do {
@@ -128,4 +128,3 @@ Task {
 }
 
 semaphore.wait()
-try? client.syncShutdown()
