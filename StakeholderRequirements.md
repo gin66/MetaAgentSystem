@@ -1,56 +1,61 @@
 # Stakeholder Requirements Document for Meta Agentic AI System
 
 ## 1. Purpose
-To define the requirements for a Meta Agentic AI System that manages agent-LLM pairings, optimizes processes, and ensures continuous progress through performance evaluation.
+Define requirements for a Meta Agentic AI System to manage agent-LLM pairings, optimize processes, and ensure continuous progress via performance evaluation.
 
 ## 2. Stakeholders
-- **System Developers**: Require robust, maintainable code and clear documentation.
+- **System Developers**: Need robust, maintainable code and clear documentation.
 - **End Users**: Expect efficient task execution and reliable outcomes.
-- **Administrators**: Need tools to monitor and adjust agent performance and system processes.
+- **Administrators**: Require tools to monitor and adjust agent performance and system processes.
 
 ## 3. Functional Requirements
 1. **Agent Management**:
-   - System must dynamically assign and manage agent-LLM pairings for tasks.
+   - Dynamically assign and manage agent-LLM pairings for tasks.
    - Support creation, deletion, and updating of agent profiles with unique IDs and roles.
 2. **Task Management**:
-   - System must allow task creation, assignment, and tracking with statuses (e.g., pending, completed).
-   - Tasks must be assignable based on agent performance metrics.
+   - Allow task creation, assignment, and tracking with statuses (e.g., pending, completed).
+   - Assign tasks based on agent performance metrics.
 3. **Performance Evaluation**:
-   - System must include judge agents to evaluate task performance.
-   - Judges must provide structured output (JSON) with a score (0-1) and feedback.
-   - Judge assignments must prioritize high-performing judges.
+   - Include judge agents to evaluate task performance.
+   - Judges provide structured JSON output with score (0-1) and feedback using LLM structured output mode.
+   - Prioritize high-performing judges for assignments.
 4. **Process Optimization**:
-   - System must optimize agent-task assignments to maximize efficiency.
-   - Must prevent endless loops of rework or over-optimization ("spinning the wheels").
+   - Optimize agent-task assignments for maximum efficiency.
+   - Prevent endless loops of rework or over-optimization.
 5. **Interface**:
-   - Must use OpenAI API for LLM interactions.
-   - Must support structured JSON output for all LLM responses.
+   - Use OpenAI API for LLM interactions with structured output mode.
+   - All LLM responses must use structured JSON output as defined by API's structured output mode.
 
 ## 4. Non-Functional Requirements
 1. **Programming Language**:
-   - System must be implemented in Rust for performance and safety.
-2. **Scalability**:
-   - Must handle increasing numbers of agents, tasks, and evaluations without performance degradation.
-3. **Reliability**:
-   - System must ensure consistent progress and avoid infinite loops.
-4. **Security**:
-   - Must securely handle API keys and sensitive data.
-5. **Maintainability**:
-   - Code must be modular, well-documented, and adhere to Rust best practices.
+   - Implement in Swift for performance and safety.
+2. **Containerization**:
+   - Use Swift containerization for process isolation.
+3. **Scalability**:
+   - Handle increasing agents, tasks, and evaluations without performance degradation.
+4. **Reliability**:
+   - Ensure consistent progress and avoid infinite loops.
+5. **Security**:
+   - Securely handle API keys and sensitive data.
+   - Derive API keys from `.env` file in root directory, similar to Python's `dotenv`.
+6. **Maintainability**:
+   - Code must be modular, well-documented, and adhere to Swift best practices.
 
 ## 5. Constraints
-- Must integrate with OpenAI API for all LLM interactions.
-- Structured output must be in JSON format.
-- System must avoid external file I/O or network calls beyond OpenAI API.
+- Integrate with OpenAI API for all LLM interactions using structured output mode.
+- Structured output in JSON format as defined by API's structured output mode.
+- Avoid external file I/O or network calls beyond OpenAI API and `.env` file reading.
 
 ## 6. Assumptions
-- OpenAI API is available and reliable.
-- Sufficient computational resources are available for Rust-based execution.
-- Stakeholders have basic understanding of AI system management.
+- OpenAI API with structured output mode is available and reliable.
+- Sufficient computational resources for Swift-based execution and containerization.
+- `.env` file is properly configured in root directory for API key access.
+- Stakeholders understand basic AI system management.
 
 ## 7. Acceptance Criteria
-- System successfully assigns agents to tasks and optimizes based on performance metrics.
-- Judge agents produce structured JSON output with valid scores and feedback.
-- System demonstrates progress without entering infinite loops in test scenarios.
-- Code compiles and runs without errors in a Rust environment.
-- API interactions are secure and efficient.
+- System assigns agents to tasks and optimizes based on performance metrics.
+- Judge agents produce structured JSON output with valid scores and feedback using LLM structured output mode.
+- System demonstrates progress without infinite loops in test scenarios.
+- Code compiles and runs without errors in a Swift containerized environment.
+- API keys are securely loaded from `.env` file.
+- API interactions use structured output mode, are secure, and efficient.
