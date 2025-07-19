@@ -1,5 +1,5 @@
-// Define basic messaging protocol for agents
+// Define the protocol for agent communication
 protocol AgentCommunicationProtocol {
-    func sendMessage(to agent: String, message: String)
-    func receiveMessage(from agent: String) -> String?
+    func sendMessage(_ message: String)
+    func receiveMessage() -> String?
 }
