@@ -160,18 +160,49 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
   Follow Swift best practices: clean, modular code; proper error handling; concurrency safety; comprehensive comments.
   Ensure code is testable, efficient, secure, and performs actual functionality (no placeholders; implement real logic that executes and produces results).
   Use Swift conventions for naming, formatting.
+  Do not modify or generate bootstrap.swift; it is the core bootstrapping script and must remain unchanged. Generate new executables if needed for additional functionality.
   """
 
   let codeGenAgent = Agent(name: "CodeGenerator", role: "a senior Swift developer for generating high-quality, functional code")
   let refinerAgent = Agent(name: "CodeRefiner", role: "an expert code reviewer and fixer for refining Swift code based on errors")
   let plannerAgent = Agent(name: "SprintPlanner", role: "an expert project manager for planning Agile sprints")
+  let detailedPlannerAgent = Agent(name: "DetailedPlanner", role: "an expert in creating detailed implementation plans in Markdown")
 
   if let current = currentNextSteps {
     let currentJson = String(data: try JSONSerialization.data(withJSONObject: current, options: .prettyPrinted), encoding: .utf8)!
+    let sprintNumber = current["sprint_number"] as? Int ?? 0
+    let planPath = "Sprints/Sprint_\(sprintNumber)_Plan.md"
+    
+    let planPrompt = """
+    You are \(detailedPlannerAgent.role).
+    \(baseDescription)
+
+    Current NextSteps.json:
+    \(currentJson)
+
+    Create a detailed implementation plan for this sprint as Markdown content.
+    Include sections for each task: detailed steps, code files to create or modify (do not modify bootstrap.swift), tests to write, alignment with vision and requirements.
+
+    Output JSON: {"plan": "full markdown content here"}
+    """
+    
+    let planResponse = try await runAgent(detailedPlannerAgent, prompt: planPrompt, client: client)
+    
+    if let planContent = planResponse["plan"] as? String {
+      let planURL = URL(fileURLWithPath: planPath)
+      try fileManager.createDirectory(at: planURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+      try planContent.data(using: .utf8)?.write(to: planURL)
+      print("Generated plan: \(planPath)")
+    }
+
+    let planContent = try String(contentsOf: URL(fileURLWithPath: planPath), encoding: .utf8)
 
     let implPrompt = """
       You are \(codeGenAgent.role).
       \(baseDescription)
+
+      Follow this detailed plan:
+      \(planContent)
 
       Current NextSteps.json:
       \(currentJson)
@@ -192,6 +223,10 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
       if let filesArray = implResponse["files"] as? [[String: String]] {
         for file in filesArray {
           if let path = file["path"], let content = file["content"] {
+            if path.hasSuffix("bootstrap.swift") {
+              print("Skipping overwrite of bootstrap.swift")
+              continue
+            }
             let url = URL(fileURLWithPath: path)
             try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try content.data(using: .utf8)?.write(to: url)
@@ -209,6 +244,9 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
           let refinePrompt = """
             You are \(refinerAgent.role).
             \(baseDescription)
+            
+            Follow this detailed plan:
+            \(planContent)
             
             Previous generation had validation issues: \(errorMsg ?? "Unknown error").
             Refine the code to fix them, ensuring it implements real, functional logic that executes and produces verifiable results.
