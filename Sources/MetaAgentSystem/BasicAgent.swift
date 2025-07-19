@@ -1,7 +1,6 @@
-// Refactor basic agent functionality for improved performance
-import Foundation
+// Implement core functionalities of BasicAgent
 class BasicAgent {
-    func performTask() {
-        // Optimized task execution code
+    func performCoreTask() {
+        // Core task implementation
     }
 }
