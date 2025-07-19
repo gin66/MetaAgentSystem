@@ -5,4 +5,7 @@
 - advise gemini to switch from openai to ollama on runnning out of quota
 - advise gemini to make use of structured output
 - switch system to use swift instead of rust
+- rework all md-files
+- several iteration of bugfixing for bootstrap.swift using grok4
+
 

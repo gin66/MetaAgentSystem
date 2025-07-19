@@ -1,20 +1,22 @@
 # Meta Agentic AI System
 
 ## Overview
-A Meta Agentic AI System built in Rust, leveraging OpenAI API with structured JSON output, and supporting Ollama as a fallback for local LLM deployment. It dynamically manages agent-LLM pairings, optimizes task assignments, and evaluates performance using judge agents, ensuring continuous progress without infinite loops. Bootstrapped with Grok 4 and Gemini for rapid development.
+A Meta Agentic AI System built in Swift, leveraging Ollama with structured output mode, with individual agents running in isolated Swift containers. It dynamically manages agent-LLM pairings, optimizes task assignments, and evaluates performance using judge agents, ensuring continuous progress without infinite loops. Bootstrapped with Grok 4 for rapid development.
 
 ## Features
 - **Dynamic Agent Management**: Assigns and optimizes agent-LLM pairings for tasks.
-- **Performance Evaluation**: Judge agents evaluate tasks with structured JSON output (score 0-1, feedback).
+- **Performance Evaluation**: Judge agents evaluate tasks with structured JSON output (score 0-1, feedback) using LLM structured output mode.
 - **Loop Prevention**: Avoids "spinning the wheels" with cycle detection and progress tracking.
-- **Scalability**: Thread-safe design using Rust’s mutex for concurrent operations.
-- **LLM Integration**: Uses OpenAI API primarily, with Ollama as a fallback for local execution.
+- **Scalability**: Thread-safe design using Swift concurrency for concurrent operations.
+- **LLM Integration**: Uses Ollama with structured output mode.
+- **Containerization**: Runs individual agents in isolated Swift containers.
 
 ## Tech Stack
-- **Language**: Rust
-- **Dependencies**: `openai-api`, `serde`, `tokio`, `uuid`
-- **APIs**: OpenAI API (structured JSON output), Ollama (fallback)
-- **Bootstrapping Tools**: Grok 4, Gemini
+- **Language**: Swift
+- **Containerization**: Swift containers for individual agents
+- **Dependencies**: `OpenAPIKit`, `SwiftNIO`, `UUID`
+- **APIs**: Ollama (structured output mode)
+- **Bootstrapping Tools**: Grok 4
 
 ## Installation
 1. **Clone the Repository**:
@@ -22,14 +24,15 @@ A Meta Agentic AI System built in Rust, leveraging OpenAI API with structured JS
    git clone https://github.com/yourusername/MetaAgentSystem.git
    cd MetaAgentSystem
    ```
-2. **Install Rust**:
-   Follow [Rust installation guide](https://www.rust-lang.org/tools/install).
-3. **Install Ollama (Optional)**:
-   Follow [Ollama installation guide](https://ollama.ai/download) for local LLM fallback.
+2. **Install Swift**:
+   Follow [Swift installation guide](https://swift.org/download/).
+3. **Install Ollama**:
+   Follow [Ollama installation guide](https://ollama.ai/download) for local LLM execution.
 4. **Build and Run**:
    ```bash
-   cargo build
-   cargo run
+   swift package init
+   swift build
+   swift run
    ```
 
 ## Development Plan
