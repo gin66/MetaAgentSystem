@@ -1,1 +1,0 @@
-// Update documentation with new architecture diagrams
