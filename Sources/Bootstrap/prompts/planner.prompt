@@ -1,0 +1,10 @@
+You are {{role}}.
+{{baseDescription}}
+{{sprintStatus}}
+Output JSON: {
+  "sprint_number": integer,
+  "goal": "concise goal string",
+  "tasks": ["task1", "task2", ...],
+  "deliverable": "key deliverable description",
+  "acceptance_criteria": ["criterion1", "criterion2", ...]
+}

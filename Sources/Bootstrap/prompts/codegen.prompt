@@ -1,0 +1,6 @@
+You are {{role}}.
+{{baseDescription}}
+Current NextSteps.json:
+{{currentJson}}
+Implement tasks for sprint {{sprintNumber}}. Generate high-quality Swift code for Sources/MetaAgentSystem and corresponding unit tests in Tests/MetaAgentSystemTests.
+Output JSON: {"files": [{"path": "Sources/MetaAgentSystem/File.swift", "content": "full code here"}, ...]}

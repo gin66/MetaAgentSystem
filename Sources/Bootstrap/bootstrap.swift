@@ -73,6 +73,18 @@ func validateSwiftPackage(in directory: String) -> (Bool, String) {
     return (true, "Build and tests passed.")
 }
 
+// MARK: - Prompt Management
+func getPrompt(from file: String, substitutions: [String: String] = [:]) throws -> String {
+    let path = "Sources/Bootstrap/prompts/\(file)"
+    var promptTemplate = try String(contentsOf: URL(fileURLWithPath: path), encoding: .utf8)
+    
+    for (key, value) in substitutions {
+        promptTemplate = promptTemplate.replacingOccurrences(of: "{{\(key)}}", with: value)
+    }
+    
+    return promptTemplate
+}
+
 
 // MARK: - AI Agent Interaction
 func callOllama(
@@ -193,30 +205,34 @@ All file paths are relative to the project root: \(projectPath).
         let currentJson = String(data: try JSONSerialization.data(withJSONObject: current, options: .prettyPrinted), encoding: .utf8)!
         let sprintNumber = current["sprint_number"] as? Int ?? 0
         
-        let implPrompt = """
-          You are \(codeGenAgent.role).
-          \(baseDescription)
-          Current NextSteps.json:
-          \(currentJson)
-          Implement tasks for sprint \(sprintNumber). Generate high-quality Swift code for Sources/MetaAgentSystem and corresponding unit tests in Tests/MetaAgentSystemTests.
-          Output JSON: {"files": [{"path": "Sources/MetaAgentSystem/File.swift", "content": "full code here"}, ...]}
-          """
+        let implPrompt = try getPrompt(from: "codegen.prompt", substitutions: [
+            "role": codeGenAgent.role,
+            "baseDescription": baseDescription,
+            "currentJson": currentJson,
+            "sprintNumber": String(sprintNumber)
+        ])
 
         var lastError = ""
         for attempt in 1...5 {
             print("\n--- Attempt \(attempt)/5 ---")
             
             // 2. Perform Requested Change (Agent generates code)
-            let agentPrompt = lastError.isEmpty ? implPrompt : """
-                You are \(refinerAgent.role).
-                \(baseDescription)
-                The previous attempt failed. Refine the code to fix the issue.
-                Validation Error: \(lastError)
-                Current NextSteps.json: \(currentJson)
-                Output JSON: {"files": [{"path": "...", "content": "..."}, ...]}
-                """
+            let agentPrompt: String
+            let activeAgent: Agent
             
-            let activeAgent = lastError.isEmpty ? codeGenAgent : refinerAgent
+            if lastError.isEmpty {
+                agentPrompt = implPrompt
+                activeAgent = codeGenAgent
+            } else {
+                agentPrompt = try getPrompt(from: "refiner.prompt", substitutions: [
+                    "role": refinerAgent.role,
+                    "baseDescription": baseDescription,
+                    "lastError": lastError,
+                    "currentJson": currentJson
+                ])
+                activeAgent = refinerAgent
+            }
+            
             let implResponse = try await runAgent(activeAgent, prompt: agentPrompt, client: client)
 
             if let filesArray = implResponse["files"] as? [[String: String]] {
@@ -258,18 +274,12 @@ All file paths are relative to the project root: \(projectPath).
     }
 
     // Plan the next sprint
-    let nextPrompt = """
-    You are \(plannerAgent.role).
-    \(baseDescription)
-    \(currentNextSteps != nil ? "Current sprint implemented. Plan the next sprint." : "Generate initial sprint plan.")
-    Output JSON: {
-      "sprint_number": integer,
-      "goal": "concise goal string",
-      "tasks": ["task1", "task2", ...],
-      "deliverable": "key deliverable description",
-      "acceptance_criteria": ["criterion1", "criterion2", ...]
-    }
-    """
+    let sprintStatus = currentNextSteps != nil ? "Current sprint implemented. Plan the next sprint." : "Generate initial sprint plan."
+    let nextPrompt = try getPrompt(from: "planner.prompt", substitutions: [
+        "role": plannerAgent.role,
+        "baseDescription": baseDescription,
+        "sprintStatus": sprintStatus
+    ])
 
     let nextResponse = try await runAgent(plannerAgent, prompt: nextPrompt, client: client)
     let outputData = try JSONSerialization.data(withJSONObject: nextResponse, options: .prettyPrinted)

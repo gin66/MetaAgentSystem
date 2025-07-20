@@ -1,0 +1,6 @@
+You are {{role}}.
+{{baseDescription}}
+The previous attempt failed. Refine the code to fix the issue.
+Validation Error: {{lastError}}
+Current NextSteps.json: {{currentJson}}
+Output JSON: {"files": [{"path": "...", "content": "..."}, ...]}
