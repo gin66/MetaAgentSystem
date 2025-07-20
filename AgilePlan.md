@@ -20,7 +20,7 @@ Develop a Meta Agentic AI System in a dedicated `MetaAgentSystem` sub-folder, us
   - Add dependencies: `OpenAPIKit`, `SwiftNIO`, `UUID`.
   - Create a program that sends a prompt to the Ollama API and prints the JSON response.
   - Parse the structured JSON output using Ollama's structured output mode.
-- **Deliverable**: A Swift program within the `MetaAgentSystem` sub-folder that makes an Ollama API call and outputs JSON.
+- **Deliverable**: Updated swift program in `MetaAgentSystem` sub-folder that makes an Ollama API call and outputs JSON.
 - **Test**: Verify the API call succeeds and the JSON is valid.
 - **Acceptance Criteria**: The program compiles, executes the API call, and outputs valid JSON.
 
