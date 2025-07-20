@@ -3,6 +3,30 @@ import Foundation
 import OpenAPIKit
 
 let bootstrap_model = "devstral:24b-small-2505-fp16"
+@MainActor let fm = FileManager.default
+
+// MARK: - File Operations
+@MainActor
+func listProjectFiles(in directory: String) -> String {
+    var result = [String]()
+    if let enumerator = fm.enumerator(atPath: directory) {
+        for case let path as String in enumerator {
+            if path.hasSuffix(".swift") || path.hasSuffix(".md") || path.hasSuffix(".txt") || path.hasSuffix(".json") {
+                result.append(path)
+            }
+        }
+    }
+    return result.sorted().joined(separator: "\n")
+}
+
+func readFile(in directory: String, relativePath: String) -> String {
+    let fullPath = "\(directory)/\(relativePath)"
+    do {
+        return try String(contentsOfFile: fullPath, encoding: .utf8)
+    } catch {
+        return "Error reading \(relativePath): \(error.localizedDescription)"
+    }
+}
 
 // MARK: - Shell Command Execution
 func runShellCommand(_ command: String, in directory: String? = nil) -> (status: Int32, output: String) {
@@ -149,10 +173,41 @@ struct Agent {
 }
 
 func runAgent(
-  _ agent: Agent, prompt: String, client: HTTPClient
+  _ agent: Agent, _ originalPrompt: String, client: HTTPClient, projectDirectory: String
 ) async throws -> [String: Any] {
   let systemPrompt = "Output ONLY the precise JSON as specified in the prompt. No explanations, wrappers, or additional content. Adhere to format exactly."
-  return try await callOllama(client: client, prompt: prompt, system: systemPrompt, model: agent.model)
+  
+  let filesList = await listProjectFiles(in: projectDirectory)
+  var prompt = """
+Available files in the project (relative paths):
+\(filesList)
+
+If you need the content of specific files (use relative paths), output ONLY: {"need_files": ["Sources/Example.swift", "docs/example.md"]}
+
+Otherwise, output the required JSON.
+  
+\(originalPrompt)
+"""
+  
+  var iteration = 0
+  while iteration < 3 {
+    iteration += 1
+    let json = try await callOllama(client: client, prompt: prompt, system: systemPrompt, model: agent.model)
+    
+    if let needFiles = json["need_files"] as? [String], !needFiles.isEmpty {
+      var additional = "\n\nProvided file contents:\n"
+      for file in needFiles {
+        let content = readFile(in: projectDirectory, relativePath: file)
+        additional += "\nFile: \(file)\n\(content)\n---\n"
+      }
+      prompt += additional + "\n\nNow, provide the final JSON output as specified in the original prompt."
+      continue
+    }
+    
+    return json
+  }
+  
+  throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Too many file request iterations."])
 }
 
 // MARK: - Core Workflow
@@ -225,7 +280,7 @@ All file paths are relative to the project root: \(projectPath).
                     let docPrompt = try getPrompt(from: "docwriter.prompt", substitutions: [
                         "role": docWriterAgent.role, "goal": goal, "step": step, "step_sanitized": step.filter { $0.isLetter || $0.isNumber }
                     ])
-                    let docResponse = try await runAgent(docWriterAgent, prompt: docPrompt, client: client)
+                    let docResponse = try await runAgent(docWriterAgent, docPrompt, client: client, projectDirectory: projectPath)
                     guard let designDoc = docResponse["design_document"] as? [String: String],
                           let path = designDoc["path"], let content = designDoc["content"] else {
                         throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "DocWriter failed to produce a design document."])
@@ -237,7 +292,7 @@ All file paths are relative to the project root: \(projectPath).
                     let verifyDesignPrompt = try getPrompt(from: "verifier_design.prompt", substitutions: [
                         "role": verifierAgent.role, "goal": goal, "step": step, "design_document_content": designDocContent
                     ])
-                    let verifyDesignResponse = try await runAgent(verifierAgent, prompt: verifyDesignPrompt, client: client)
+                    let verifyDesignResponse = try await runAgent(verifierAgent, verifyDesignPrompt, client: client, projectDirectory: projectPath)
                     if let verified = verifyDesignResponse["verified"] as? Bool, verified {
                         print("Design for step '\(step)' has been verified.")
                     } else {
@@ -270,7 +325,7 @@ All file paths are relative to the project root: \(projectPath).
                     ])
                 }
                 
-                let implResponse = try await runAgent(activeAgent, prompt: agentPrompt, client: client)
+                let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath)
                 
                 if let filesArray = implResponse["files"] as? [[String: String]] {
                     generatedFiles = filesArray
@@ -291,7 +346,7 @@ All file paths are relative to the project root: \(projectPath).
                 let verifyImplPrompt = try getPrompt(from: "verifier_impl.prompt", substitutions: [
                     "design_document_content": designDocContent, "code_files_content": updatedCodeFilesContent
                 ])
-                let verifyImplResponse = try await runAgent(verifierAgent, prompt: verifyImplPrompt, client: client)
+                let verifyImplResponse = try await runAgent(verifierAgent, verifyImplPrompt, client: client, projectDirectory: projectPath)
                 if let verified = verifyImplResponse["verified"] as? Bool, verified {
                     print("Implementation for step '\(step)' has been verified.")
                     failureReason = "" // Clear failure reason
@@ -337,7 +392,7 @@ All file paths are relative to the project root: \(projectPath).
         "sprintStatus": sprintStatus
     ])
 
-    let nextResponse = try await runAgent(plannerAgent, prompt: nextPrompt, client: client)
+    let nextResponse = try await runAgent(plannerAgent, nextPrompt, client: client, projectDirectory: projectPath)
     let outputData = try JSONSerialization.data(withJSONObject: nextResponse, options: .prettyPrinted)
     try outputData.write(to: URL(fileURLWithPath: nextStepsPath))
     print("NextSteps.json updated for the next sprint.")
@@ -369,4 +424,3 @@ struct Bootstrap {
     }
   }
 }
-
