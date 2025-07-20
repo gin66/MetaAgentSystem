@@ -1,0 +1,17 @@
+{
+  "sprint_number" : 1,
+  "goal" : "Verify basic Ollama API integration.",
+  "acceptance_criteria" : [
+    "The program compiles successfully.",
+    "The program executes the API call to Ollama.",
+    "The output is valid JSON as per Ollama's structured output mode."
+  ],
+  "deliverable" : "Updated Swift program in MetaAgentSystem sub-folder that makes an Ollama API call and outputs JSON.",
+  "steps" : [
+    "Create a new Swift project for MetaAgentSystem in the correct sub-folder.",
+    "Setup Package.swift with necessary dependencies (OpenAPIKit, SwiftNIO, UUID).",
+    "Write code to send a sample prompt to the Ollama API and capture the JSON response.",
+    "Parse the structured JSON output using Ollama's structured output mode.",
+    "Add basic error handling for network issues or invalid responses."
+  ]
+}
