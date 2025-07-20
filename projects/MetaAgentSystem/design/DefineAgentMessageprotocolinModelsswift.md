@@ -1,34 +1,24 @@
-# Design Document: Define `AgentMessage` Protocol in Models.swift
+# Design Document
 ## Sprint Goal: Implement Basic Agent Communication Protocol
-### Step: Define `AgentMessage` Protocol in `Models.swift`
+### Step: Define `AgentMessage` protocol in Models.swift
 
-## Classes, Structs, and Protocols
-### `AgentMessage` Protocol
-The `AgentMessage` protocol will define the structure of messages that agents use to communicate.
-```swift
-// Models.swift
+#### Classes:
+- **AgentMessage**
+  - **Description:** A protocol defining the basic structure for messages exchanged between agents.
 
-import Foundation
+#### Structs:
+- None
 
-protocol AgentMessage {
-    var sender: String { get }
-    var recipient: String { get }
-    var timestamp: Date { get }
-    var content: String { get }
-}
-```
-## Interactions
-- **Agent Classes**: Any class representing an agent should be able to create and send instances of `AgentMessage`.
-- **Message Handling**: There will be a message handler or router that processes messages conforming to the `AgentMessage` protocol, ensuring it can handle various types of agents' communications.
+#### Functions:
+- None
 
-## Example Usage
-```swift
-struct SimpleAgentMessage: AgentMessage {
-    let sender: String
-    let recipient: String
-    let timestamp: Date
-    let content: String
-}
+#### Protocols:
+- **AgentMessage**
+  - **Methods:**
+    - `init(from: JSON)` -> Self (Required)
+      - **Description:** Initializes a new instance of the protocol with data from a JSON object.
+    - `toJSON()` -> JSON (Required)
+      - **Description:** Converts the message to a JSON representation.
 
-let message = SimpleAgentMessage(sender: "agent1", recipient: "agent2", timestamp: Date(), content: "Hello, Agent 2!")
-```
+#### Interactions:
+- None specified
