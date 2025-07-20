@@ -388,6 +388,7 @@ All file paths are relative to the project root: \(projectPath).
     // Plan the next sprint
     print("\n--- Planning Next Sprint ---")
     let sprintStatus = currentNextSteps != nil ? "Current sprint implemented. Plan the next sprint." : "Generate initial sprint plan for Sprint 1 as per AgilePlan.md."
+    let agilePlanContent = readFile(in: projectPath, relativePath: "AgilePlan.md")
     let nextPrompt = try getPrompt(from: "planner.prompt", substitutions: [
         "role": plannerAgent.role,
         "baseDescription": baseDescription,
