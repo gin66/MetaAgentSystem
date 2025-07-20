@@ -59,10 +59,16 @@ Define requirements for a Meta Agentic AI System, to be developed in a dedicated
 - Agent interactions with Ollama API are secure and efficient.
 
 ## 8. Automated Workflow Strategy
-The system shall adhere to the following automated workflow for applying changes:
-1. **Verify Clean State**: Check if the `git` working tree is clean (no uncommitted changes).
-2. **Apply Changes**: Perform the requested code modification or task.
-3. **Build and Test**: Execute the `swift build` and `swift test` commands to validate the changes.
-4. **Retry on Failure**: If the build or tests fail, loop back to step 2 to attempt a fix. This loop can be repeated for a maximum of five attempts.
-5. **Handle Persistent Failure**: If the build or tests still fail after five attempts, discard all changes by executing a `git checkout -- .` and terminate the process.
-6. **Commit on Success**: If the build and tests pass, commit the changes to the repository with a clear and descriptive commit message.
+The system shall adhere to a rigorous, documentation-driven automated workflow for applying changes, ensuring that each step is small, verifiable, and atomically committed.
+
+1.  **Sprint Planning**: Each sprint's goals shall be broken down into a series of tiny, verifiable implementation steps.
+2.  **Iteration per Step**: The system will iterate through each tiny step one at a time. The workflow for a single step is as follows:
+    a. **Verify Clean State**: Check if the `git` working tree is clean.
+    b. **Update/Create Design Documentation**: Before any code is written, a dedicated agent must produce design documentation for the current implementation step. This includes specifying interactions, flows, classes, structs, APIs, and protocols.
+    c. **Verify Design**: A verifier agent must check that the proposed design is logical, sound, and correctly addresses the implementation step. The design must be approved before proceeding.
+    d. **Implement Code**: The coding agent will write or modify Swift code and corresponding tests based *only* on the verified design documentation.
+    e. **Verify Implementation**: The verifier agent must check that the generated code is a sensible and correct implementation of the approved design.
+    f. **Build and Test**: The system will execute `swift build` and `swift test` to validate the changes.
+    g. **Atomic Commit**: If verification, build, and tests all pass, the changes to both the design documentation and the source code will be committed to git together in a single, atomic commit.
+3.  **Retry on Failure**: If any verification, build, or test step fails, the system will loop back to the appropriate preceding step (e.g., a design verification failure returns to the design step). This loop can be repeated for a maximum of five attempts per implementation step.
+4.  **Handle Persistent Failure**: If a step fails after five attempts, all changes for that step are discarded by executing `git checkout -- .`, and the entire process is terminated to await manual intervention.

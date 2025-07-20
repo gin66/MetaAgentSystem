@@ -79,7 +79,7 @@ func getPrompt(from file: String, substitutions: [String: String] = [:]) throws 
     var promptTemplate = try String(contentsOf: URL(fileURLWithPath: path), encoding: .utf8)
     
     for (key, value) in substitutions {
-        promptTemplate = promptTemplate.replacingOccurrences(of: "{{\(key)}}", with: value)
+        promptTemplate = promptTemplate.replacingOccurrences(of: "{{\((key))}}", with: value)
     }
     
     return promptTemplate
@@ -164,7 +164,14 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
         return
     }
 
-    // Prepare prompts and agents
+    // Prepare agents
+    let plannerAgent = Agent(name: "SprintPlanner", role: "an expert project manager for planning Agile sprints")
+    let docWriterAgent = Agent(name: "DocWriter", role: "a senior software architect for creating detailed design documents")
+    let verifierAgent = Agent(name: "Verifier", role: "an expert software engineering verifier for designs and implementations")
+    let codeGenAgent = Agent(name: "CodeGenerator", role: "a senior Swift developer for generating high-quality, functional code")
+    let refinerAgent = Agent(name: "CodeRefiner", role: "an expert code reviewer and fixer for refining Swift code based on errors")
+
+    // Prepare base description for prompts
     let nextStepsPath = "\(projectPath)/NextSteps.json"
     var filesDescription = ""
     let metadataFiles: [String: String] = [
@@ -174,11 +181,9 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
         "Vision.md": "High-level vision for the system.",
         "Package.swift": "Swift Package Manager manifest.",
     ]
-
     for (file, desc) in metadataFiles {
         filesDescription += "- \(file): \(desc)\n"
     }
-    
     let baseDescription = """
 The project directory structure:
 \(filesDescription)
@@ -187,12 +192,8 @@ Follow Swift best practices. Ensure code is testable, efficient, and implements 
 Do not modify bootstrap.swift.
 All file paths are relative to the project root: \(projectPath).
 """
-    
-    let codeGenAgent = Agent(name: "CodeGenerator", role: "a senior Swift developer for generating high-quality, functional code")
-    let refinerAgent = Agent(name: "CodeRefiner", role: "an expert code reviewer and fixer for refining Swift code based on errors")
-    let plannerAgent = Agent(name: "SprintPlanner", role: "an expert project manager for planning Agile sprints")
 
-    // Determine current sprint and plan
+    // Determine current sprint plan
     let currentNextSteps: [String: Any]?
     if fileManager.fileExists(atPath: nextStepsPath) {
         let data = try Data(contentsOf: URL(fileURLWithPath: nextStepsPath))
@@ -201,79 +202,132 @@ All file paths are relative to the project root: \(projectPath).
         currentNextSteps = nil
     }
 
-    if let current = currentNextSteps {
-        let currentJson = String(data: try JSONSerialization.data(withJSONObject: current, options: .prettyPrinted), encoding: .utf8)!
+    // Main workflow loop
+    if let current = currentNextSteps, let steps = current["steps"] as? [String], !steps.isEmpty {
         let sprintNumber = current["sprint_number"] as? Int ?? 0
+        let goal = current["goal"] as? String ?? "N/A"
         
-        let implPrompt = try getPrompt(from: "codegen.prompt", substitutions: [
-            "role": codeGenAgent.role,
-            "baseDescription": baseDescription,
-            "currentJson": currentJson,
-            "sprintNumber": String(sprintNumber)
-        ])
+        for (index, step) in steps.enumerated() {
+            print("\n--- Implementing Sprint \(sprintNumber), Step \(index + 1)/\(steps.count): \(step) ---")
+            
+            var designDocPath = ""
+            var designDocContent = ""
+            var generatedFiles: [[String: String]] = []
+            var failureReason = ""
 
-        var lastError = ""
-        for attempt in 1...5 {
-            print("\n--- Attempt \(attempt)/5 ---")
-            
-            // 2. Perform Requested Change (Agent generates code)
-            let agentPrompt: String
-            let activeAgent: Agent
-            
-            if lastError.isEmpty {
-                agentPrompt = implPrompt
-                activeAgent = codeGenAgent
-            } else {
-                agentPrompt = try getPrompt(from: "refiner.prompt", substitutions: [
-                    "role": refinerAgent.role,
-                    "baseDescription": baseDescription,
-                    "lastError": lastError,
-                    "currentJson": currentJson
-                ])
-                activeAgent = refinerAgent
-            }
-            
-            let implResponse = try await runAgent(activeAgent, prompt: agentPrompt, client: client)
+            for attempt in 1...5 {
+                print("\n--- Attempt \(attempt)/5 ---")
+                
+                // 1. Design Phase (only on first attempt)
+                if attempt == 1 {
+                    let docPrompt = try getPrompt(from: "docwriter.prompt", substitutions: [
+                        "role": docWriterAgent.role, "goal": goal, "step": step, "step_sanitized": step.filter { $0.isLetter || $0.isNumber }
+                    ])
+                    let docResponse = try await runAgent(docWriterAgent, prompt: docPrompt, client: client)
+                    guard let designDoc = docResponse["design_document"] as? [String: String],
+                          let path = designDoc["path"], let content = designDoc["content"] else {
+                        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "DocWriter failed to produce a design document."])
+                    }
+                    designDocPath = path
+                    designDocContent = content
 
-            if let filesArray = implResponse["files"] as? [[String: String]] {
-                for file in filesArray {
-                    if let path = file["path"], let content = file["content"] {
-                        if path.hasSuffix("bootstrap.swift") {
-                            print("Skipping overwrite of bootstrap.swift")
-                            continue
-                        }
-                        let url = URL(fileURLWithPath: "\(projectPath)/\(path)")
-                        try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-                        try content.data(using: .utf8)?.write(to: url)
-                        print("Generated/Modified: \(path)")
+                    // Verify Design
+                    let verifyDesignPrompt = try getPrompt(from: "verifier_design.prompt", substitutions: [
+                        "role": verifierAgent.role, "goal": goal, "step": step, "design_document_content": designDocContent
+                    ])
+                    let verifyDesignResponse = try await runAgent(verifierAgent, prompt: verifyDesignPrompt, client: client)
+                    if let verified = verifyDesignResponse["verified"] as? Bool, verified {
+                        print("Design for step '\(step)' has been verified.")
+                    } else {
+                        failureReason = "Design verification failed: \(verifyDesignResponse["feedback"] as? String ?? "No feedback")"
+                        print(failureReason)
+                        // For simplicity, we restart the whole step. A more advanced implementation could try to refine the design.
+                        break 
                     }
                 }
-            } else {
-                print("Warning: Agent provided no files in the response.")
-            }
 
-            // 3. Build and Test
-            let (success, validationOutput) = validateSwiftPackage(in: projectPath)
-            lastError = validationOutput
-            
-            if success {
-                // 6. Commit on Success
-                let commitMessage = "feat: Implement sprint \(sprintNumber) - \(current["goal"] ?? "updates")"
-                gitCommit(message: commitMessage, in: projectPath)
-                print("Workflow completed successfully for sprint \(sprintNumber).")
-                break // Exit loop
-            }
-            
-            if attempt == 5 {
-                // 5. Handle Persistent Failure
-                print("All 5 attempts failed.")
-                gitForceCheckout(in: projectPath)
-                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Workflow failed after 5 attempts. Changes were discarded."])
+                // 2. Implementation or Refinement
+                let codeFilesContent = generatedFiles.map { "Path: \($0["path"] ?? "")\n\($0["content"] ?? "")" }.joined(separator: "\n---\n")
+                let activeAgent: Agent
+                let agentPrompt: String
+
+                if failureReason.isEmpty {
+                    activeAgent = codeGenAgent
+                    agentPrompt = try getPrompt(from: "codegen.prompt", substitutions: [
+                        "role": codeGenAgent.role, "baseDescription": baseDescription, "design_document_content": designDocContent
+                    ])
+                } else {
+                    print("--- Refining Implementation ---")
+                    activeAgent = refinerAgent
+                    agentPrompt = try getPrompt(from: "refiner.prompt", substitutions: [
+                        "role": refinerAgent.role,
+                        "baseDescription": baseDescription,
+                        "design_document_content": designDocContent,
+                        "failure_reason": failureReason,
+                        "code_files_content": codeFilesContent
+                    ])
+                }
+                
+                let implResponse = try await runAgent(activeAgent, prompt: agentPrompt, client: client)
+                
+                if let filesArray = implResponse["files"] as? [[String: String]] {
+                    generatedFiles = filesArray
+                    for file in filesArray {
+                        if let path = file["path"], let content = file["content"] {
+                            let url = URL(fileURLWithPath: "\(projectPath)/\(path)")
+                            try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                            try content.data(using: .utf8)?.write(to: url)
+                            print("Generated/Refined: \(path)")
+                        }
+                    }
+                } else {
+                    print("Warning: \(activeAgent.name) provided no files in the response.")
+                }
+
+                // 3. Verify Implementation
+                let updatedCodeFilesContent = generatedFiles.map { "Path: \($0["path"] ?? "")\n\($0["content"] ?? "")" }.joined(separator: "\n---\n")
+                let verifyImplPrompt = try getPrompt(from: "verifier_impl.prompt", substitutions: [
+                    "design_document_content": designDocContent, "code_files_content": updatedCodeFilesContent
+                ])
+                let verifyImplResponse = try await runAgent(verifierAgent, prompt: verifyImplPrompt, client: client)
+                if let verified = verifyImplResponse["verified"] as? Bool, verified {
+                    print("Implementation for step '\(step)' has been verified.")
+                    failureReason = "" // Clear failure reason
+                } else {
+                    failureReason = "Implementation verification failed: \(verifyImplResponse["feedback"] as? String ?? "No feedback")"
+                    print(failureReason)
+                    continue // Retry with refinement
+                }
+
+                // 4. Build and Test
+                let (success, validationOutput) = validateSwiftPackage(in: projectPath)
+                if success {
+                    print("Build and tests passed.")
+                    let designURL = URL(fileURLWithPath: "\(projectPath)/\(designDocPath)")
+                    try fileManager.createDirectory(at: designURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try designDocContent.data(using: .utf8)?.write(to: designURL)
+                    print("Saved design document: \(designDocPath)")
+
+                    let commitMessage = "feat: Implement sprint \(sprintNumber) step: \(step)"
+                    gitCommit(message: commitMessage, in: projectPath)
+                    print("Workflow completed successfully for step: \(step).")
+                    break 
+                } else {
+                    failureReason = validationOutput
+                    print("Validation failed: \(failureReason)")
+                }
+                
+                if attempt == 5 {
+                    print("All 5 attempts failed for step: \(step).")
+                    gitForceCheckout(in: projectPath)
+                    throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Workflow failed after 5 attempts. Changes were discarded."])
+                }
             }
         }
     }
 
     // Plan the next sprint
+    print("\n--- Planning Next Sprint ---")
     let sprintStatus = currentNextSteps != nil ? "Current sprint implemented. Plan the next sprint." : "Generate initial sprint plan."
     let nextPrompt = try getPrompt(from: "planner.prompt", substitutions: [
         "role": plannerAgent.role,
@@ -310,3 +364,4 @@ struct Bootstrap {
     }
   }
 }
+

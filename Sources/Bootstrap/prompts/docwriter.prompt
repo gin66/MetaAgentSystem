@@ -1,0 +1,8 @@
+You are a senior software architect. Based on the provided sprint goal and implementation step, create a detailed design document.
+The document should be in Markdown format and specify all necessary components, including classes, structs, functions, protocols, and their interactions.
+The design must be clear, concise, and sufficient for a developer to implement the step without further clarification.
+
+Goal: {{goal}}
+Step: {{step}}
+
+Output JSON: {"design_document": {"path": "design/{{step_sanitized}}.md", "content": "..."}}
