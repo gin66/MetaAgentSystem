@@ -2,10 +2,7 @@
   "goal" : "Set up project infrastructure and define initial system architecture.",
   "deliverable" : "Functional project setup with necessary documentation and infrastructure.",
   "steps" : [
-    "Create a new directory for the MetaAgentSystem project.",
-    "Initialize the Swift Package Manager with 'swift package init --type executable'.",
     "Modify Package.swift to set up dependencies and targets according to AgilePlan.md.",
-    "Create and populate README.md with project overview, setup, and usage instructions.",
     "Review StakeholderRequirements.md to understand initial requirements.",
     "Draft Vision.md based on high-level vision for the system."
   ],
