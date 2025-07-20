@@ -1,3 +1,6 @@
+<!--
+This file is intended to be read by the AI agents and not parsed by the agentic system.
+-->
 # Vision and Mission Statement for Meta Agentic AI System
 
 ## Vision

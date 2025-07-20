@@ -1,3 +1,6 @@
+<!--
+This file is intended to be read by the AI agents and not parsed by the agentic system.
+-->
 # Agile Implementation Plan for Meta Agentic AI System (Fast Sprints)
 
 ## Objective
