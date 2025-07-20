@@ -1,44 +1,39 @@
-# Agent Communicator Class Design
+# Design Document for AgentCommunicator Class Implementation in Networking Directory
 
 ## Overview
-The `AgentCommunicator` class is designed to handle basic agent communication protocols. It will reside in the Networking directory and provide a structured way to send, receive, and manage messages between agents.
+This document outlines the design and implementation details of the `AgentCommunicator` class, which will be located in the `Networking` directory. The primary purpose of this class is to facilitate communication between agents using a basic protocol.
 
 ## Components
-### Classes
-#### `AgentCommunicator`
-- **Purpose**: Central class responsible for handling all agent communications.
-- **Responsibilities**:
-  - Send messages to other agents.
-  - Receive messages from other agents.
-  - Maintain a list of connected agents.
-  - Manage connection status and handle reconnections if needed.
+### AgentCommunicator Class
+The `AgentCommunicator` class will be responsible for establishing connections and managing message exchange between different agents.
 
-#### `Message`
-- **Purpose**: Represent a message to be sent or received by an agent.
-- **Responsibilities**:
-  - Store metadata (sender, receiver, timestamp).
-  - Carry the actual content of the communication.
+#### Properties
+- `url: URL`: The base URL for the agent server or service.
+- `session: URLSession`: The session used to make HTTP requests.
 
-### Structs
-None for this implementation step.
-
-### Functions
-#### `AgentCommunicator`
-- `init()`: Initialize the communicator with default settings.
-- `connect(agentId: String)`: Establish a connection to an agent identified by `agentId`.
-- `disconnect(agentId: String)`: Terminate a connection to an agent identified by `agentId`.
-- `sendMessage(to: String, message: Message)`: Send a message to a specific agent.
-- `receiveMessages()`: Retrieve messages received from all connected agents.
-
-### Protocols
-None for this implementation step.
+#### Methods
+- `init(url: URL)`: Initializes a new instance of AgentCommunicator with a specified URL.
+- `sendMessage(message: String, completion: @escaping (Result<Data?, Error>) -> Void)`: Sends an HTTP POST request with the given message and calls the provided completion handler upon receiving the response or encountering an error.
 
 ## Interactions
-1. **Initialization**: An instance of `AgentCommunicator` is created and initialized with default settings.
-2. **Connection Management**:
-   - Agents can connect by calling `connect(agentId: String)`.
-   - Connections are managed internally using a list or dictionary structure to keep track of connected agents.
-3. **Message Handling**: 
-   - Messages are sent using `sendMessage(to: String, message: Message)` which routes the message appropriately based on the recipient's agent ID.
-   - Received messages can be fetched using `receiveMessages()` method.
-4. **Disconnection**: Connections to specific agents can be terminated using `disconnect(agentId: String)`.
+The `AgentCommunicator` class will interact with external services via URLSession to send and receive data. Additionally, it will communicate with other parts of the system through its public methods for sending messages.
+
+### Example Usage
+```swift
+import Foundation
+
+let agentURL = URL(string: "https://example.com/api/agent")!
+let communicator = AgentCommunicator(url: agentURL)
+
+communicator.sendMessage(message: "Hello, World!" , completion: { result in
+    switch result {
+    case .success(let data):
+        print("Received data: \(String(describing: data))")
+    case .failure(let error):
+        print("Failed with error: \(error)")
+    }
+})
+```
+
+## Conclusion
+This document provides a clear and concise design for the `AgentCommunicator` class, including its properties, methods, and interactions. Developers should be able to implement this class according to the provided specifications without further clarification.

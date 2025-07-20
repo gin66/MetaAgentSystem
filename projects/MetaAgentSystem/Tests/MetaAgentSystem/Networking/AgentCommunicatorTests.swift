@@ -3,44 +3,44 @@ import XCTest
 @testable import MetaAgentSystem
 
 class AgentCommunicatorTests: XCTestCase {
-    var agentCommunicator: AgentCommunicator!
+    var agentURL: URL!
+    var communicator: AgentCommunicator!
 
     override func setUp() {
         super.setUp()
-        agentCommunicator = AgentCommunicator()
+        agentURL = URL(string: "https://example.com/api/agent")!
+        communicator = AgentCommunicator(url: agentURL)
     }
 
-    override func tearDown() {
-        agentCommunicator = nil
-        super.tearDown()
+    func testSendMessageSuccess() {
+        let expectation = self.expectation(description: "testSendMessageSuccess")
+
+        communicator.sendMessage(message: "Hello, World!") { result in
+            switch result {
+            case .success(let data):
+                XCTAssertNotNil(data)
+                expectation.fulfill()
+            case .failure:
+                XCTFail("Expected success but got failure")
+            }
+        }
+
+        waitForExpectations(timeout: 5, handler: nil)
     }
 
-    func testConnect() {
-        agentCommunicator.connect(agentId: "Agent1")
-        XCTAssertTrue(agentCommunicator.connectedAgents.contains("Agent1"))
-    }
+    func testSendMessageFailure() {
+        let expectation = self.expectation(description: "testSendMessageFailure")
 
-    func testDisconnect() {
-        agentCommunicator.connect(agentId: "Agent2")
-        agentCommunicator.disconnect(agentId: "Agent2")
-        XCTAssertFalse(agentCommunicator.connectedAgents.contains("Agent2"))
-    }
+        communicator.sendMessage(message: "Hello, World!") { result in
+            switch result {
+            case .success:
+                XCTFail("Expected failure but got success")
+            case .failure(let error):
+                XCTAssertNotNil(error)
+                expectation.fulfill()
+            }
+        }
 
-    func testSendAndReceiveMessage() {
-        let sender = Message(sender: "Agent1", receiver: "Agent3", timestamp: Date(), content: "Hello, Agent3!")
-        agentCommunicator.connect(agentId: "Agent3")
-        agentCommunicator.sendMessage(to: "Agent3", message: sender)
-
-        let receivedMessages = agentCommunicator.receiveMessages()["Agent3"]
-        XCTAssertEqual(receivedMessages?.count, 1)
-        XCTAssertEqual(receivedMessages?[0].content, "Hello, Agent3!")
-    }
-
-    func testReconnect() {
-        let agentId = "Agent4"
-        agentCommunicator.connect(agentId: agentId)
-        agentCommunicator.disconnect(agentId: agentId)
-        agentCommunicator.reconnect(agentId: agentId)
-        XCTAssertTrue(agentCommunicator.connectedAgents.contains(agentId))
+        waitForExpectations(timeout: 5, handler: nil)
     }
 }
