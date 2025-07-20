@@ -3,7 +3,7 @@ import Foundation
 import OpenAPIKit
 
 // MARK: - Shell Command Execution
-func runShellCommand(_ command: String) -> (status: Int32, output: String) {
+func runShellCommand(_ command: String, in directory: String? = nil) -> (status: Int32, output: String) {
     let task = Process()
     let pipe = Pipe()
     
@@ -11,6 +11,10 @@ func runShellCommand(_ command: String) -> (status: Int32, output: String) {
     task.standardError = pipe
     task.executableURL = URL(fileURLWithPath: "/bin/bash")
     task.arguments = ["-c", command]
+    
+    if let directory = directory {
+        task.currentDirectoryPath = directory
+    }
     
     do {
         try task.run()
@@ -26,21 +30,21 @@ func runShellCommand(_ command: String) -> (status: Int32, output: String) {
 }
 
 // MARK: - Git Operations
-func isGitClean() -> Bool {
-    let (status, output) = runShellCommand("git status --porcelain")
+func isGitClean(in directory: String) -> Bool {
+    let (status, output) = runShellCommand("git status --porcelain", in: directory)
     return status == 0 && output.isEmpty
 }
 
-func gitForceCheckout() {
+func gitForceCheckout(in directory: String) {
     print("Persistent failure. Discarding all changes...")
-    _ = runShellCommand("git checkout -- .")
+    _ = runShellCommand("git checkout -- .", in: directory)
     print("Changes have been discarded.")
 }
 
-func gitCommit(message: String) {
+func gitCommit(message: String, in directory: String) {
     print("Committing changes to the repository...")
-    _ = runShellCommand("git add .")
-    let (status, output) = runShellCommand("git commit -m \"\(message)\"")
+    _ = runShellCommand("git add .", in: directory)
+    let (status, output) = runShellCommand("git commit -m \"\(message)\"", in: directory)
     if status == 0 {
         print("Successfully committed changes.")
     } else {
@@ -49,16 +53,16 @@ func gitCommit(message: String) {
 }
 
 // MARK: - Swift Package Validation
-func validateSwiftPackage() -> (Bool, String) {
+func validateSwiftPackage(in directory: String) -> (Bool, String) {
     print("Validating Swift package: Building and running tests...")
-    let (buildStatus, buildOutput) = runShellCommand("swift build")
+    let (buildStatus, buildOutput) = runShellCommand("swift build", in: directory)
     if buildStatus != 0 {
         let error = "Swift build failed."
         print(error)
         return (false, "\(error)\n\(buildOutput)")
     }
     
-    let (testStatus, testOutput) = runShellCommand("swift test")
+    let (testStatus, testOutput) = runShellCommand("swift test", in: directory)
     if testStatus != 0 {
         let error = "Swift tests failed."
         print(error)
@@ -140,15 +144,16 @@ func runAgent(
 // MARK: - Core Workflow
 func bootstrapNextSteps(client: HTTPClient) async throws {
     let fileManager = FileManager.default
+    let projectPath = "projects/MetaAgentSystem"
     
     // 1. Verify Clean State
-    guard isGitClean() else {
+    guard isGitClean(in: projectPath) else {
         print("Error: Git working directory is not clean. Please commit or stash changes before starting.")
         return
     }
 
     // Prepare prompts and agents
-    let nextStepsPath = "NextSteps.json"
+    let nextStepsPath = "\(projectPath)/NextSteps.json"
     var filesDescription = ""
     let metadataFiles: [String: String] = [
         "AgilePlan.md": "Detailed Agile implementation plan.",
@@ -168,6 +173,7 @@ The project directory structure:
 Strictly align all work with AgilePlan.md, StakeholderRequirements.md, and Vision.md.
 Follow Swift best practices. Ensure code is testable, efficient, and implements real functionality.
 Do not modify bootstrap.swift.
+All file paths are relative to the project root: \(projectPath).
 """
     
     let codeGenAgent = Agent(name: "CodeGenerator", role: "a senior Swift developer for generating high-quality, functional code")
@@ -220,7 +226,7 @@ Do not modify bootstrap.swift.
                             print("Skipping overwrite of bootstrap.swift")
                             continue
                         }
-                        let url = URL(fileURLWithPath: path)
+                        let url = URL(fileURLWithPath: "\(projectPath)/\(path)")
                         try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
                         try content.data(using: .utf8)?.write(to: url)
                         print("Generated/Modified: \(path)")
@@ -231,13 +237,13 @@ Do not modify bootstrap.swift.
             }
 
             // 3. Build and Test
-            let (success, validationOutput) = validateSwiftPackage()
+            let (success, validationOutput) = validateSwiftPackage(in: projectPath)
             lastError = validationOutput
             
             if success {
                 // 6. Commit on Success
                 let commitMessage = "feat: Implement sprint \(sprintNumber) - \(current["goal"] ?? "updates")"
-                gitCommit(message: commitMessage)
+                gitCommit(message: commitMessage, in: projectPath)
                 print("Workflow completed successfully for sprint \(sprintNumber).")
                 break // Exit loop
             }
@@ -245,7 +251,7 @@ Do not modify bootstrap.swift.
             if attempt == 5 {
                 // 5. Handle Persistent Failure
                 print("All 5 attempts failed.")
-                gitForceCheckout()
+                gitForceCheckout(in: projectPath)
                 throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Workflow failed after 5 attempts. Changes were discarded."])
             }
         }
