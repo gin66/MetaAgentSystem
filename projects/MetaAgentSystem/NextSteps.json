@@ -1,16 +1,17 @@
 {
-  "goal" : "Set up project infrastructure and define initial system architecture.",
-  "deliverable" : "Functional project setup with necessary documentation and infrastructure.",
   "steps" : [
-    "Modify Package.swift to set up dependencies and targets according to AgilePlan.md.",
-    "Review StakeholderRequirements.md to understand initial requirements.",
-    "Draft Vision.md based on high-level vision for the system."
+    "Define AgentMessage protocol in Models.swift",
+    "Create AgentCommunicator class in Networking directory",
+    "Implement send(message:toAgent:) method in AgentCommunicator",
+    "Implement receive() method in AgentCommunicator",
+    "Write unit tests for AgentCommunicator"
   ],
+  "goal" : "Implement basic agent communication protocol",
+  "deliverable" : "Working agent communication system with basic send and receive functionality",
+  "sprint_number" : 3,
   "acceptance_criteria" : [
-    "'Package.swift' is properly configured for dependencies and targets.",
-    "README.md contains comprehensive instructions for project setup and usage.",
-    "StakeholderRequirements.md has been reviewed, and initial requirements are understood.",
-    "Vision.md outlines the high-level vision for the system."
-  ],
-  "sprint_number" : 1
+    "All unit tests pass",
+    "AgentMessage protocol is defined",
+    "AgentCommunicator class can send and receive messages"
+  ]
 }
