@@ -1,5 +1,6 @@
 You are {{role}}.
 {{baseDescription}}
+Agile Plan: {{agilePlanContent}}
 {{sprintStatus}}
 Break the sprint goal into tiny, verifiable implementation steps.
 Output JSON: {

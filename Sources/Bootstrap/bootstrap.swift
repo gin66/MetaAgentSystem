@@ -391,8 +391,10 @@ All file paths are relative to the project root: \(projectPath).
     let nextPrompt = try getPrompt(from: "planner.prompt", substitutions: [
         "role": plannerAgent.role,
         "baseDescription": baseDescription,
-        "sprintStatus": sprintStatus
+        "sprintStatus": sprintStatus,
+        "agilePlanContent": agilePlanContent
     ])
+    let agilePlanContent = readFile(in: projectPath, relativePath: "AgilePlan.md")
 
     let nextResponse = try await runAgent(plannerAgent, nextPrompt, client: client, projectDirectory: projectPath)
     let outputData = try JSONSerialization.data(withJSONObject: nextResponse, options: .prettyPrinted)
