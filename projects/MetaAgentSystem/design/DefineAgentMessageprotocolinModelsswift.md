@@ -1,24 +1,33 @@
-# Design Document
-## Sprint Goal: Implement Basic Agent Communication Protocol
-### Step: Define `AgentMessage` protocol in Models.swift
+# Define Agent Message Protocol in Models.swift
 
-#### Classes:
-- **AgentMessage**
-  - **Description:** A protocol defining the basic structure for messages exchanged between agents.
+## Overview
+This document outlines the design for implementing a basic agent communication protocol by defining an `AgentMessage` protocol.
 
-#### Structs:
-- None
+## Components
+### Protocols
+- **AgentMessage**: A protocol that defines the structure and requirements of messages exchanged between agents.
 
-#### Functions:
-- None
+## Implementations
+### Models.swift
+```swift
+// Define AgentMessage protocol
+protocol AgentMessage {
+    var id: String { get }
+    var content: String { get }
+    var timestamp: Date { get }
+}
+```
 
-#### Protocols:
-- **AgentMessage**
-  - **Methods:**
-    - `init(from: JSON)` -> Self (Required)
-      - **Description:** Initializes a new instance of the protocol with data from a JSON object.
-    - `toJSON()` -> JSON (Required)
-      - **Description:** Converts the message to a JSON representation.
+## Usage
+- All agent messages must conform to the `AgentMessage` protocol.
+- Ensure that all properties (`id`, `content`, and `timestamp`) are implemented in message structures.
 
-#### Interactions:
-- None specified
+## Interactions
+### Example Implementation
+```swift
+struct ExampleMessage: AgentMessage {
+    var id: String
+    var content: String
+    var timestamp: Date
+}
+```
