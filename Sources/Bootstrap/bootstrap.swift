@@ -197,6 +197,7 @@ Otherwise, output the required JSON.
     let json = try await callOllama(client: client, prompt: prompt, system: systemPrompt, model: agent.model)
     
     if let needFiles = json["need_files"] as? [String], !needFiles.isEmpty {
+      print("need files: \(needFiles)")
       var additional = "\n\nProvided file contents:\n"
       for file in needFiles {
         let content = readFile(in: projectDirectory, relativePath: file)
