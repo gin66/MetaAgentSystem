@@ -2,19 +2,18 @@
 import Foundation
 
 protocol AgentMessage {
-    init(from: JSON)
-    func toJSON() -> JSON
+    var id: UUID { get }
+    var timestamp: Date { get }
+    var senderId: String { get }
+    var recipientId: String? { get set }
 }
 
-// Helper extension for initializing with JSON
-public struct JSON: Codable {}
-extension AgentMessage where Self: Decodable, Self: Encodable {
-    init(from json: JSON) {
-        guard let data = try? JSONEncoder().encode(json) else { fatalError() }
-        self = try! JSONDecoder().decode(Self.self, from: data)
+extension AgentMessage where Self: Encodable, Self: Decodable {
+    func encode() -> Data {
+        return try! JSONEncoder().encode(self)
     }
 
-    func toJSON() -> JSON {
-        return try! JSONSerialization.jsonObject(with: JSONEncoder().encode(self), options: []) as? JSON ?? [:]
+    static func decode(data: Data) -> Self? {
+        return try? JSONDecoder().decode(Self.self, from: data)
     }
 }
