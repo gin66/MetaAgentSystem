@@ -24,6 +24,9 @@ let package = Package(
                 .product(name: "NIOExtras", package: "swift-nio-extras"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "SwiftyJSON", package: "SwiftyJSON")
+            ],
+            resources: [
+                .copy("prompts")
             ]
         )
     ]
