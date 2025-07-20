@@ -2,7 +2,75 @@ import AsyncHTTPClient
 import Foundation
 import OpenAPIKit
 
-// Enhanced callOllama with better error handling and logging
+// MARK: - Shell Command Execution
+func runShellCommand(_ command: String) -> (status: Int32, output: String) {
+    let task = Process()
+    let pipe = Pipe()
+    
+    task.standardOutput = pipe
+    task.standardError = pipe
+    task.executableURL = URL(fileURLWithPath: "/bin/bash")
+    task.arguments = ["-c", command]
+    
+    do {
+        try task.run()
+    } catch {
+        return (-1, "Failed to run command: \(error.localizedDescription)")
+    }
+    
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    let output = String(data: data, encoding: .utf8) ?? ""
+    
+    task.waitUntilExit()
+    return (task.terminationStatus, output)
+}
+
+// MARK: - Git Operations
+func isGitClean() -> Bool {
+    let (status, output) = runShellCommand("git status --porcelain")
+    return status == 0 && output.isEmpty
+}
+
+func gitForceCheckout() {
+    print("Persistent failure. Discarding all changes...")
+    _ = runShellCommand("git checkout -- .")
+    print("Changes have been discarded.")
+}
+
+func gitCommit(message: String) {
+    print("Committing changes to the repository...")
+    _ = runShellCommand("git add .")
+    let (status, output) = runShellCommand("git commit -m \"\(message)\"")
+    if status == 0 {
+        print("Successfully committed changes.")
+    } else {
+        print("Error: Git commit failed.\nOutput:\n\(output)")
+    }
+}
+
+// MARK: - Swift Package Validation
+func validateSwiftPackage() -> (Bool, String) {
+    print("Validating Swift package: Building and running tests...")
+    let (buildStatus, buildOutput) = runShellCommand("swift build")
+    if buildStatus != 0 {
+        let error = "Swift build failed."
+        print(error)
+        return (false, "\(error)\n\(buildOutput)")
+    }
+    
+    let (testStatus, testOutput) = runShellCommand("swift test")
+    if testStatus != 0 {
+        let error = "Swift tests failed."
+        print(error)
+        return (false, "\(error)\n\(testOutput)")
+    }
+    
+    print("Swift package validation successful.")
+    return (true, "Build and tests passed.")
+}
+
+
+// MARK: - AI Agent Interaction
 func callOllama(
   client: HTTPClient, prompt: String, system: String? = nil, model: String = "devstral"
 ) async throws -> [String: Any] {
@@ -32,11 +100,10 @@ func callOllama(
       userInfo: [NSLocalizedDescriptionKey: "HTTP error: \(response.status)"])
   }
 
-  let body = try await response.body.collect(upTo: 1024 * 1024 * 10)  // Larger buffer
+  let body = try await response.body.collect(upTo: 1024 * 1024 * 10)
   let data = Data(buffer: body)
   let rawString = String(data: data, encoding: .utf8) ?? "No data"
-  print("Raw Ollama response: \(rawString)")
-
+  
   guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
     throw NSError(
       domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse JSON: \(rawString)"])
@@ -54,7 +121,6 @@ func callOllama(
       domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse LLM response: \(rawString)"])
   }
 
-  print("Parsed LLM result: \(result)")
   return result
 }
 
@@ -71,226 +137,138 @@ func runAgent(
   return try await callOllama(client: client, prompt: prompt, system: systemPrompt, model: agent.model)
 }
 
-// New function to validate the entire package and capture output
-func validatePackage() throws -> (Bool, String?) {
-  func runCommand(args: [String]) -> (Int32, String) {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/swift")
-    process.arguments = args
-    
-    let outPipe = Pipe()
-    process.standardOutput = outPipe
-    let errPipe = Pipe()
-    process.standardError = errPipe
-    
-    try? process.run()
-    process.waitUntilExit()
-    
-    let outputOptional = try? outPipe.fileHandleForReading.readToEnd()
-    let outputData = outputOptional.flatMap { $0 } ?? Data()
-    
-    let errorOptional = try? errPipe.fileHandleForReading.readToEnd()
-    let errorData = errorOptional.flatMap { $0 } ?? Data()
-    
-    let output = String(data: outputData, encoding: .utf8) ?? ""
-    let error = String(data: errorData, encoding: .utf8) ?? ""
-    
-    return (process.terminationStatus, output + error)
-  }
-  
-  let (buildStatus, buildOutput) = runCommand(args: ["build"])
-  if buildStatus != 0 {
-    return (false, "Build failed: \(buildOutput)")
-  }
-  
-  let (testStatus, testOutput) = runCommand(args: ["test"])
-  if testStatus != 0 {
-    return (false, "Tests failed: \(testOutput)")
-  }
-  
-  return (true, nil)
-}
-
-// Improved bootstrap with package-level validation, iteration, enhanced prompts
+// MARK: - Core Workflow
 func bootstrapNextSteps(client: HTTPClient) async throws {
-  let fileManager = FileManager.default
-  let nextStepsPath = "NextSteps.json"
-  var currentNextSteps: [String: Any]? = nil
-
-  // Enhanced filesDescription with more details
-  var filesDescription = ""
-  let metadataFiles: [String: String] = [
-    "AgilePlan.md": "Detailed Agile implementation plan including sprints and backlogs.",
-    "LogBook.md": "Chronological log of all project activities and decisions.",
-    "README.md": "Comprehensive project overview, setup, and usage instructions.",
-    "StakeholderRequirements.md": "List of all stakeholder requirements and priorities.",
-    "Vision.md": "High-level vision statement for the Meta Agentic AI System.",
-    "Package.swift": "Swift Package Manager manifest defining dependencies and targets.",
-    "bootstrap.swift": "Script for bootstrapping and automating project development.",
-  ]
-
-  for (file, desc) in metadataFiles {
-    filesDescription += "- \(file): \(desc)\n"
-  }
-
-  // Scan Sources and Tests, include brief content summary if possible
-  let pathsToScan = ["Sources", "Tests"]
-  for basePath in pathsToScan {
-    let baseURL = URL(fileURLWithPath: basePath)
-    let enumerator = fileManager.enumerator(at: baseURL, includingPropertiesForKeys: nil)
-
-    while let file = enumerator?.nextObject() as? URL {
-      guard file.pathExtension == "swift" else { continue }
-      let relativePath = file.path
-      filesDescription += "- \(relativePath): Swift code file for \(basePath == "Sources" ? "implementation" : "unit tests").\n"
-    }
-  }
-
-  if fileManager.fileExists(atPath: nextStepsPath) {
-    let data = try Data(contentsOf: URL(fileURLWithPath: nextStepsPath))
-    currentNextSteps = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-    filesDescription += "- NextSteps.json: JSON file outlining the current sprint plan.\n"
-  }
-
-  let baseDescription = """
-  The project directory structure:
-  \(filesDescription)
-
-  Strictly align all work with AgilePlan.md, StakeholderRequirements.md, README.md, and Vision.md.
-  Follow Swift best practices: clean, modular code; proper error handling; concurrency safety; comprehensive comments.
-  Ensure code is testable, efficient, secure, and performs actual functionality (no placeholders; implement real logic that executes and produces results).
-  Use Swift conventions for naming, formatting.
-  Do not modify or generate bootstrap.swift; it is the core bootstrapping script and must remain unchanged. Generate new executables if needed for additional functionality.
-  """
-
-  let codeGenAgent = Agent(name: "CodeGenerator", role: "a senior Swift developer for generating high-quality, functional code")
-  let refinerAgent = Agent(name: "CodeRefiner", role: "an expert code reviewer and fixer for refining Swift code based on errors")
-  let plannerAgent = Agent(name: "SprintPlanner", role: "an expert project manager for planning Agile sprints")
-  let detailedPlannerAgent = Agent(name: "DetailedPlanner", role: "an expert in creating detailed implementation plans in Markdown")
-
-  if let current = currentNextSteps {
-    let currentJson = String(data: try JSONSerialization.data(withJSONObject: current, options: .prettyPrinted), encoding: .utf8)!
-    let sprintNumber = current["sprint_number"] as? Int ?? 0
-    let planPath = "Sprints/Sprint_\(sprintNumber)_Plan.md"
+    let fileManager = FileManager.default
     
-    let planPrompt = """
-    You are \(detailedPlannerAgent.role).
-    \(baseDescription)
-
-    Current NextSteps.json:
-    \(currentJson)
-
-    Create a detailed implementation plan for this sprint as Markdown content.
-    Include sections for each task: detailed steps, code files to create or modify (do not modify bootstrap.swift), tests to write, alignment with vision and requirements.
-
-    Output JSON: {"plan": "full markdown content here"}
-    """
-    
-    let planResponse = try await runAgent(detailedPlannerAgent, prompt: planPrompt, client: client)
-    
-    if let planContent = planResponse["plan"] as? String {
-      let planURL = URL(fileURLWithPath: planPath)
-      try fileManager.createDirectory(at: planURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-      try planContent.data(using: .utf8)?.write(to: planURL)
-      print("Generated plan: \(planPath)")
+    // 1. Verify Clean State
+    guard isGitClean() else {
+        print("Error: Git working directory is not clean. Please commit or stash changes before starting.")
+        return
     }
 
-    let planContent = try String(contentsOf: URL(fileURLWithPath: planPath), encoding: .utf8)
+    // Prepare prompts and agents
+    let nextStepsPath = "NextSteps.json"
+    var filesDescription = ""
+    let metadataFiles: [String: String] = [
+        "AgilePlan.md": "Detailed Agile implementation plan.",
+        "README.md": "Project overview, setup, and usage instructions.",
+        "StakeholderRequirements.md": "List of all stakeholder requirements.",
+        "Vision.md": "High-level vision for the system.",
+        "Package.swift": "Swift Package Manager manifest.",
+    ]
 
-    let implPrompt = """
-      You are \(codeGenAgent.role).
-      \(baseDescription)
-
-      Follow this detailed plan:
-      \(planContent)
-
-      Current NextSteps.json:
-      \(currentJson)
-
-      Implement tasks for sprint \(current["sprint_number"] ?? "unknown"). Generate high-quality Swift code for Sources/MetaAgentSystem and corresponding unit tests in Tests/MetaAgentSystemTests.
-      Code must: compile without errors, include error handling, be modular, follow SOLID principles, and implement real, executable functionality that does something useful (e.g., processes data, calls APIs, runs agents).
-      Tests must cover edge cases, use XCTest, and verify that the code performs its intended actions.
-
-      Output JSON: {"files": [{"path": "Sources/MetaAgentSystem/File.swift", "content": "full code here"}, ...]}
-      """
-
-    var implResponse = try await runAgent(codeGenAgent, prompt: implPrompt, client: client)
+    for (file, desc) in metadataFiles {
+        filesDescription += "- \(file): \(desc)\n"
+    }
     
-    // Iteration loop for refinement
-    var attempts = 0
-    let maxAttempts = 3
-    while attempts < maxAttempts {
-      if let filesArray = implResponse["files"] as? [[String: String]] {
-        for file in filesArray {
-          if let path = file["path"], let content = file["content"] {
-            if path.hasSuffix("bootstrap.swift") {
-              print("Skipping overwrite of bootstrap.swift")
-              continue
-            }
-            let url = URL(fileURLWithPath: path)
-            try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try content.data(using: .utf8)?.write(to: url)
-            print("Generated: \(path)")
-          }
-        }
+    let baseDescription = """
+The project directory structure:
+\(filesDescription)
+Strictly align all work with AgilePlan.md, StakeholderRequirements.md, and Vision.md.
+Follow Swift best practices. Ensure code is testable, efficient, and implements real functionality.
+Do not modify bootstrap.swift.
+"""
+    
+    let codeGenAgent = Agent(name: "CodeGenerator", role: "a senior Swift developer for generating high-quality, functional code")
+    let refinerAgent = Agent(name: "CodeRefiner", role: "an expert code reviewer and fixer for refining Swift code based on errors")
+    let plannerAgent = Agent(name: "SprintPlanner", role: "an expert project manager for planning Agile sprints")
+
+    // Determine current sprint and plan
+    let currentNextSteps: [String: Any]?
+    if fileManager.fileExists(atPath: nextStepsPath) {
+        let data = try Data(contentsOf: URL(fileURLWithPath: nextStepsPath))
+        currentNextSteps = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+    } else {
+        currentNextSteps = nil
+    }
+
+    if let current = currentNextSteps {
+        let currentJson = String(data: try JSONSerialization.data(withJSONObject: current, options: .prettyPrinted), encoding: .utf8)!
+        let sprintNumber = current["sprint_number"] as? Int ?? 0
         
-        // Validate the entire package after writing all files
-        let (valid, errorMsg) = try validatePackage()
-        if valid {
-          print("All files validated successfully.")
-          break
-        } else {
-          print("Package validation failed. Refining...")
-          let refinePrompt = """
-            You are \(refinerAgent.role).
-            \(baseDescription)
-            
-            Follow this detailed plan:
-            \(planContent)
-            
-            Previous generation had validation issues: \(errorMsg ?? "Unknown error").
-            Refine the code to fix them, ensuring it implements real, functional logic that executes and produces verifiable results.
-            Current NextSteps.json: \(currentJson)
-            
-            Output JSON: {"files": [{"path": "...", "content": "..."}, ...]}
-            """
-          implResponse = try await runAgent(refinerAgent, prompt: refinePrompt, client: client)
-          attempts += 1
-        }
-      } else {
-        print("No files in response. Retrying...")
-        attempts += 1
-        implResponse = try await runAgent(codeGenAgent, prompt: implPrompt, client: client)
-      }
-    }
-    
-    if attempts == maxAttempts {
-      print("Max refinement attempts reached. Proceeding with best effort.")
-    }
-  }
+        let implPrompt = """
+          You are \(codeGenAgent.role).
+          \(baseDescription)
+          Current NextSteps.json:
+          \(currentJson)
+          Implement tasks for sprint \(sprintNumber). Generate high-quality Swift code for Sources/MetaAgentSystem and corresponding unit tests in Tests/MetaAgentSystemTests.
+          Output JSON: {"files": [{"path": "Sources/MetaAgentSystem/File.swift", "content": "full code here"}, ...]}
+          """
 
-  // Enhanced nextPrompt for better sprint planning
-  let nextPrompt = """
+        var lastError = ""
+        for attempt in 1...5 {
+            print("\n--- Attempt \(attempt)/5 ---")
+            
+            // 2. Perform Requested Change (Agent generates code)
+            let agentPrompt = lastError.isEmpty ? implPrompt : """
+                You are \(refinerAgent.role).
+                \(baseDescription)
+                The previous attempt failed. Refine the code to fix the issue.
+                Validation Error: \(lastError)
+                Current NextSteps.json: \(currentJson)
+                Output JSON: {"files": [{"path": "...", "content": "..."}, ...]}
+                """
+            
+            let activeAgent = lastError.isEmpty ? codeGenAgent : refinerAgent
+            let implResponse = try await runAgent(activeAgent, prompt: agentPrompt, client: client)
+
+            if let filesArray = implResponse["files"] as? [[String: String]] {
+                for file in filesArray {
+                    if let path = file["path"], let content = file["content"] {
+                        if path.hasSuffix("bootstrap.swift") {
+                            print("Skipping overwrite of bootstrap.swift")
+                            continue
+                        }
+                        let url = URL(fileURLWithPath: path)
+                        try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try content.data(using: .utf8)?.write(to: url)
+                        print("Generated/Modified: \(path)")
+                    }
+                }
+            } else {
+                print("Warning: Agent provided no files in the response.")
+            }
+
+            // 3. Build and Test
+            let (success, validationOutput) = validateSwiftPackage()
+            lastError = validationOutput
+            
+            if success {
+                // 6. Commit on Success
+                let commitMessage = "feat: Implement sprint \(sprintNumber) - \(current["goal"] ?? "updates")"
+                gitCommit(message: commitMessage)
+                print("Workflow completed successfully for sprint \(sprintNumber).")
+                break // Exit loop
+            }
+            
+            if attempt == 5 {
+                // 5. Handle Persistent Failure
+                print("All 5 attempts failed.")
+                gitForceCheckout()
+                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Workflow failed after 5 attempts. Changes were discarded."])
+            }
+        }
+    }
+
+    // Plan the next sprint
+    let nextPrompt = """
     You are \(plannerAgent.role).
     \(baseDescription)
-
-    \(currentNextSteps != nil ? "Current sprint implemented and validated. Plan the next sprint." : "Generate initial sprint plan.")
-
+    \(currentNextSteps != nil ? "Current sprint implemented. Plan the next sprint." : "Generate initial sprint plan.")
     Output JSON: {
       "sprint_number": integer,
       "goal": "concise goal string",
-      "tasks": ["task1", "task2", ...] (testable, artifact-producing tasks),
+      "tasks": ["task1", "task2", ...],
       "deliverable": "key deliverable description",
-      "acceptance_criteria": ["criterion1", "criterion2", ...] (measurable criteria)
+      "acceptance_criteria": ["criterion1", "criterion2", ...]
     }
-    Tasks must advance the project, be specific, create code artifacts in Sources/Tests that implement real functionality, align with vision.
     """
 
-  let nextResponse = try await runAgent(plannerAgent, prompt: nextPrompt, client: client)
-
-  let outputData = try JSONSerialization.data(withJSONObject: nextResponse, options: .prettyPrinted)
-  try outputData.write(to: URL(fileURLWithPath: nextStepsPath))
-  print("NextSteps.json updated")
+    let nextResponse = try await runAgent(plannerAgent, prompt: nextPrompt, client: client)
+    let outputData = try JSONSerialization.data(withJSONObject: nextResponse, options: .prettyPrinted)
+    try outputData.write(to: URL(fileURLWithPath: nextStepsPath))
+    print("NextSteps.json updated for the next sprint.")
 }
 
 @main
@@ -300,16 +278,19 @@ struct Bootstrap {
       eventLoopGroupProvider: .singleton,
       configuration: HTTPClient.Configuration(
         timeout: HTTPClient.Configuration.Timeout(connect: .seconds(30), read: .seconds(300))))
-    var error: Error? = nil
+    
+    var workflowError: Error?
     do {
       try await bootstrapNextSteps(client: client)
-    } catch let e {
-      error = e
-      print("Error: \(e.localizedDescription)")
+    } catch {
+      workflowError = error
+      print("\nFATAL ERROR: \(error.localizedDescription)")
     }
+    
     try await client.shutdown()
-    if let error {
-      throw error
+    
+    if let workflowError {
+      throw workflowError
     }
   }
 }
