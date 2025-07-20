@@ -308,7 +308,7 @@ All file paths are relative to the project root: \(projectPath).
                     try designDocContent.data(using: .utf8)?.write(to: designURL)
                     print("Saved design document: \(designDocPath)")
 
-                    let commitMessage = "feat: Implement sprint \(sprintNumber) step: \(step)"
+                    let commitMessage = "bootstrap: feat: Implement sprint \(sprintNumber) step: \(step)"
                     gitCommit(message: commitMessage, in: projectPath)
                     print("Workflow completed successfully for step: \(step).")
                     break 
@@ -339,6 +339,9 @@ All file paths are relative to the project root: \(projectPath).
     let outputData = try JSONSerialization.data(withJSONObject: nextResponse, options: .prettyPrinted)
     try outputData.write(to: URL(fileURLWithPath: nextStepsPath))
     print("NextSteps.json updated for the next sprint.")
+
+    let commitMessage = "bootstrap: chore: Plan next sprint"
+    gitCommit(message: commitMessage, in: projectPath)
 }
 
 @main
