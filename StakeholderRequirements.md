@@ -1,7 +1,7 @@
 # Stakeholder Requirements Document for Meta Agentic AI System
 
 ## 1. Purpose
-Define requirements for a Meta Agentic AI System to manage agent-LLM pairings, optimize processes, and ensure continuous progress via performance evaluation, with agents running in isolated Swift containers.
+Define requirements for a Meta Agentic AI System, to be developed in a dedicated `MetaAgentSystem` sub-folder, to manage agent-LLM pairings, optimize processes, and ensure continuous progress via performance evaluation, with agents running in isolated Swift containers.
 
 ## 2. Stakeholders
 - **System Developers**: Need robust, maintainable code and clear documentation.

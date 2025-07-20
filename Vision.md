@@ -1,7 +1,7 @@
 # Vision and Mission Statement for Meta Agentic AI System
 
 ## Vision
-To create a dynamic, self-improving meta agentic AI system that optimizes agent and LLM performance, ensuring continuous progress and breakthrough results through adaptive process design and rigorous performance evaluation.
+To create a dynamic, self-improving meta agentic AI system, developed within a dedicated `MetaAgentSystem` sub-folder, that optimizes agent and LLM performance, ensuring continuous progress and breakthrough results through adaptive process design and rigorous performance evaluation.
 
 ## Mission
 To design and manage a meta agentic AI framework that:

@@ -3,13 +3,16 @@
 ## Task 1: Create Module Structure in `Package.swift`
 
 ### Detailed Steps:
-1. Identify the main modules required for the Meta Agentic AI System based on Vision.md and StakeholderRequirements.md.
-2. Define each module in Package.swift with dependencies, targets, and necessary configurations.
-3. Ensure `bootstrap.swift` is correctly referenced in the package manifest.
-4. Validate that `Package.swift` conforms to Swift best practices for readability and maintainability.
+1.  Create a `MetaAgentSystem` sub-folder to house the main application.
+2.  Update the root `Package.swift` to only include the `Bootstrap` target.
+3.  Create a new `Package.swift` inside the `MetaAgentSystem` sub-folder.
+4.  Define the `MetaAgentSystem` executable target and its dependencies in the new `Package.swift`.
+5.  Ensure `bootstrap.swift` is correctly referenced in the root package manifest.
+6.  Validate that both `Package.swift` files conform to Swift best practices.
 
 ### Code Files:
-- Package.swift
+-   `Package.swift`
+-   `MetaAgentSystem/Package.swift`
 
 ### Tests:
 N/A (Package configuration)
@@ -20,17 +23,16 @@ This step establishes a solid foundation for module management as per the overal
 ## Task 2: Implement Basic Bootstrap Functionality to Validate Setup
 
 ### Detailed Steps:
-1. Create a new executable target in Package.swift named `BootstrapValidator`.
-2. Develop minimal bootstrap code in `/Users/jochen/src/MetaAgentSystem/Sources/Bootstrap/bootstrap.swift` that runs without errors.
-3. Ensure `bootstrap.swift` integrates correctly with the main application logic and initializes required components.
-4. Validate through basic execution to confirm error-free operation.
+1.  Develop minimal bootstrap code in `Sources/Bootstrap/bootstrap.swift` that runs without errors.
+2.  Ensure `bootstrap.swift` can be executed to set up the development environment.
+3.  Validate through basic execution to confirm error-free operation.
 
 ### Code Files:
-- `/Users/jochen/src/MetaAgentSystem/Sources/Bootstrap/bootstrap.swift`
-- Package.swift (adding executable target)
+-   `Sources/Bootstrap/bootstrap.swift`
+-   `Package.swift`
 
 ### Tests:
-Implement unit tests in `BootstrapValidatorTests.swift` that validate the successful execution of bootstrap logic.
+N/A (Bootstrap validation is done by running it)
 
 ### Alignment with Vision and Requirements:
 Validating initial setup ensures adherence to development best practices, supporting a scalable architecture.
@@ -38,17 +40,17 @@ Validating initial setup ensures adherence to development best practices, suppor
 ## Task 3: Develop Initial Data Models Representing Agents and Interactions
 
 ### Detailed Steps:
-1. Define core data models for agents based on StakeholderRequirements.md in the `Models` module within Sources.
-2. Establish relationships between different data entities representing interactions or messages.
-3. Ensure all new data models are cleanly defined, modularized, and follow Swift conventions.
-4. Include necessary initializers, properties, methods for basic functionality.
+1.  Define core data models for agents based on `StakeholderRequirements.md` in the `MetaAgentSystem/Sources/MetaAgentSystem/Models` module.
+2.  Establish relationships between different data entities representing interactions or messages.
+3.  Ensure all new data models are cleanly defined, modularized, and follow Swift conventions.
+4.  Include necessary initializers, properties, and methods for basic functionality.
 
 ### Code Files:
-- `/Users/jochen/src/MetaAgentSystem/Sources/Models/Agent.swift`
-- `/Users/jochen/src/MetaAgentSystem/Sources/Models/Interaction.swift`
+-   `MetaAgentSystem/Sources/MetaAgentSystem/Models/Agent.swift`
+-   `MetaAgentSystem/Sources/MetaAgentSystem/Models/Interaction.swift`
 
 ### Tests:
-Develop unit tests in `ModelsTests.swift` to ensure data models are created, manipulated, and interact correctly.
+Develop unit tests in `MetaAgentSystem/Tests/MetaAgentSystemTests/ModelsTests.swift` to ensure data models are created, manipulated, and interact correctly.
 
 ### Alignment with Vision and Requirements:
 Data model creation aligns closely with stakeholder requirements and foundational vision for agentic interactions.
@@ -56,13 +58,13 @@ Data model creation aligns closely with stakeholder requirements and foundationa
 ## Task 4: Write Unit Tests for New Data Models Ensuring Correctness
 
 ### Detailed Steps:
-1. Create a test suite within the `Tests` folder to cover all data models in `Models` module.
-2. Develop unit tests for each model, ensuring all properties and methods work as expected.
-3. Implement mock interactions to validate relationships between entities.
-4. Aim for 100% coverage with a focus on correctness and performance.
+1.  Create a test suite within the `MetaAgentSystem/Tests` folder to cover all data models in the `Models` module.
+2.  Develop unit tests for each model, ensuring all properties and methods work as expected.
+3.  Implement mock interactions to validate relationships between entities.
+4.  Aim for 100% coverage with a focus on correctness and performance.
 
 ### Code Files:
-- `/Users/jochen/src/MetaAgentSystem/Tests/ModelsTests.swift`
+-   `MetaAgentSystem/Tests/MetaAgentSystemTests/ModelsTests.swift`
 
 ### Tests:
 Implement detailed unit tests as mentioned above, focusing on data model interactions and integrity.

@@ -1,7 +1,7 @@
 # Agile Implementation Plan for Meta Agentic AI System (Fast Sprints)
 
 ## Objective
-Develop a Meta Agentic AI System using Swift and Ollama with structured output mode, with agents running in isolated Swift containers, using logical, testable steps executed as fast as possible.
+Develop a Meta Agentic AI System in a dedicated `MetaAgentSystem` sub-folder, using Swift and Ollama with structured output mode. The system will feature agents running in isolated Swift containers, and will be developed through logical, testable steps executed as fast as possible.
 
 ## Agile Principles
 - Rapid, incremental development with testable deliverables.
@@ -12,15 +12,16 @@ Develop a Meta Agentic AI System using Swift and Ollama with structured output m
 ## Sprint Plan (Logical, Testable Steps)
 
 ### Sprint 1: Initial Setup and Hello World
-- **Goal**: Establish Swift environment and basic Ollama API integration.
+- **Goal**: Establish the Swift project structure within the `MetaAgentSystem` sub-folder and verify basic Ollama API integration.
 - **Tasks**:
-  - Initialize Swift project with `swift package init`.
+  - Create a `MetaAgentSystem` sub-folder.
+  - Initialize a Swift project within the `MetaAgentSystem` sub-folder using `swift package init`.
   - Add dependencies: `OpenAPIKit`, `SwiftNIO`, `UUID`.
-  - Create program that sends a prompt to Ollama API and prints JSON response.
-  - Parse structured JSON output using Ollama's structured output mode.
-- **Deliverable**: Swift program making Ollama API call with JSON output.
-- **Test**: Verify API call succeeds and JSON is valid.
-- **Acceptance Criteria**: Program compiles, executes API call, and outputs valid JSON.
+  - Create a program that sends a prompt to the Ollama API and prints the JSON response.
+  - Parse the structured JSON output using Ollama's structured output mode.
+- **Deliverable**: A Swift program within the `MetaAgentSystem` sub-folder that makes an Ollama API call and outputs JSON.
+- **Test**: Verify the API call succeeds and the JSON is valid.
+- **Acceptance Criteria**: The program compiles, executes the API call, and outputs valid JSON.
 
 ### Sprint 2: Core Data Structures
 - **Goal**: Define and manage agent and task structures.

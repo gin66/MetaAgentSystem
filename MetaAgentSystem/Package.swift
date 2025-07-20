@@ -14,7 +14,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "Bootstrap",
+            name: "MetaAgentSystem",
             dependencies: [
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "OpenAPIKit", package: "OpenAPIKit"),
@@ -25,6 +25,10 @@ let package = Package(
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "SwiftyJSON", package: "SwiftyJSON")
             ]
-        )
+        ),
+     .testTarget(
+         name: "MetaAgentSystemTests",
+         dependencies: ["MetaAgentSystem"]
+      )
     ]
 )
