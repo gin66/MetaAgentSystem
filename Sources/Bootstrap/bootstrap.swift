@@ -193,6 +193,7 @@ Otherwise, output the required JSON.
   var iteration = 0
   while iteration < 3 {
     iteration += 1
+    print("Call ollama \(agent.model)")
     let json = try await callOllama(client: client, prompt: prompt, system: systemPrompt, model: agent.model)
     
     if let needFiles = json["need_files"] as? [String], !needFiles.isEmpty {
