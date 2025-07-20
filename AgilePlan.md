@@ -17,7 +17,6 @@ Develop a Meta Agentic AI System in a dedicated `MetaAgentSystem` sub-folder, us
 ### Sprint 1: Initial Setup and Hello World
 - **Goal**: Verify basic Ollama API integration.
 - **Tasks**:
-  - Add dependencies: `OpenAPIKit`, `SwiftNIO`, `UUID`.
   - Create a program that sends a prompt to the Ollama API and prints the JSON response.
   - Parse the structured JSON output using Ollama's structured output mode.
 - **Deliverable**: Updated swift program in `MetaAgentSystem` sub-folder that makes an Ollama API call and outputs JSON.

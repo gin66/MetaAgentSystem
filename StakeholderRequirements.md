@@ -33,6 +33,7 @@ Define requirements for a Meta Agentic AI System, to be developed in a dedicated
 ## 4. Non-Functional Requirements
 1. **Programming Language**:
    - Implement in Swift for performance and safety.
+   - Use Swift 6 and apply Swift concurrency using async and await
 2. **Containerization**:
    - Run individual agents and judge agents in isolated Swift containers for process isolation.
 3. **Scalability**:
