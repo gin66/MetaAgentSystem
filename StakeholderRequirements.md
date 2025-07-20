@@ -57,3 +57,12 @@ Define requirements for a Meta Agentic AI System, to be developed in a dedicated
 - System demonstrates progress without infinite loops in test scenarios.
 - Code compiles and runs without errors, with agents in Swift containers.
 - Agent interactions with Ollama API are secure and efficient.
+
+## 8. Automated Workflow Strategy
+The system shall adhere to the following automated workflow for applying changes:
+1. **Verify Clean State**: Check if the `git` working tree is clean (no uncommitted changes).
+2. **Apply Changes**: Perform the requested code modification or task.
+3. **Build and Test**: Execute the `swift build` and `swift test` commands to validate the changes.
+4. **Retry on Failure**: If the build or tests fail, loop back to step 2 to attempt a fix. This loop can be repeated for a maximum of five attempts.
+5. **Handle Persistent Failure**: If the build or tests still fail after five attempts, discard all changes by executing a `git checkout -- .` and terminate the process.
+6. **Commit on Success**: If the build and tests pass, commit the changes to the repository with a clear and descriptive commit message.
