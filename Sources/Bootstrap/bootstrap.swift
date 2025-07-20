@@ -2,6 +2,8 @@ import AsyncHTTPClient
 import Foundation
 import OpenAPIKit
 
+let bootstrap_model = "devstral:24b-small-2505-fp16"
+
 // MARK: - Shell Command Execution
 func runShellCommand(_ command: String, in directory: String? = nil) -> (status: Int32, output: String) {
     let task = Process()
@@ -88,7 +90,7 @@ func getPrompt(from file: String, substitutions: [String: String] = [:]) throws 
 
 // MARK: - AI Agent Interaction
 func callOllama(
-  client: HTTPClient, prompt: String, system: String? = nil, model: String = "devstral"
+  client: HTTPClient, prompt: String, system: String? = nil, model: String = bootstrap_model
 ) async throws -> [String: Any] {
   var request = HTTPClientRequest(url: "http://localhost:11434/api/generate")
   request.method = .POST
@@ -143,7 +145,7 @@ func callOllama(
 struct Agent {
   let name: String
   let role: String
-  let model: String = "devstral"
+  let model: String = bootstrap_model
 }
 
 func runAgent(
