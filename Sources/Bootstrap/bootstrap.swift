@@ -2,8 +2,8 @@ import AsyncHTTPClient
 import Foundation
 import OpenAPIKit
 
-//let bootstrap_model = "devstral:24b-small-2505-fp16"
-let bootstrap_model = "devstral"
+let bootstrap_model = "devstral:24b-small-2505-fp16"
+//let bootstrap_model = "devstral"
 @MainActor let fm = FileManager.default
 
 // MARK: - File Operations
