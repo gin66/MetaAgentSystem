@@ -7,7 +7,7 @@ The purpose of this design is to outline the necessary components and interactio
 ### 2.1 Agent Struct
 - **Struct**: `Agent`
 - **Purpose**: To represent agents in the system.
-- **Fields**:
+- **Fields**: 
   - `id: String`: Unique identifier for the agent.
   - `role: String`: Role of the agent (e.g., admin, user).
   - `performanceScore: Double`: Performance score of the agent. This could be a value between 0 and 1 representing performance metrics.
