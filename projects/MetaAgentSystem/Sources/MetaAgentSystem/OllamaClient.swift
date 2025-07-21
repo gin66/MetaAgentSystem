@@ -15,6 +15,7 @@ struct OllamaClient {
 
         // Send Request and Handle Response
         let (data, response) = try await URLSession.shared.data(for: request)
+        print("\(response)")
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
             let decodedResponse = try JSONDecoder().decode(OllamaResponse.self, from: data)
             return decodedResponse
