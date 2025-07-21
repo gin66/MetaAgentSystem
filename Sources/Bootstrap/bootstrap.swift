@@ -237,20 +237,33 @@ struct Agent {
 }
 
 func runAgent(
-  _ agent: Agent, _ originalPrompt: String, client: HTTPClient, projectDirectory: String
+  _ agent: Agent, _ originalPrompt: String, client: HTTPClient, projectDirectory: String, task: String
 ) async throws -> [String: Any] {
   let systemPrompt = "Output ONLY the precise JSON as specified in the prompt. No explanations, wrappers, or additional content. Adhere to format exactly."
   
-  let filesList = await listProjectFiles(in: projectDirectory)
+  let configManagerAgent = Agent(name: "ConfigurationManager", role: "an expert at identifying relevant files for a task")
+  let allFiles = await listProjectFiles(in: projectDirectory)
+  
+  let configPrompt = try getPrompt(from: "configmanager.prompt", substitutions: [
+      "task": task,
+      "files": allFiles
+  ])
+  
+  let configResponse = try await callOllama(client: client, prompt: configPrompt, system: systemPrompt, model: configManagerAgent.model)
+  
+  guard let relevantFiles = configResponse["files"] as? [String] else {
+      throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "ConfigurationManager failed to produce a file list."])
+  }
+  
   var allFilesContent = ""
-  for file in filesList.components(separatedBy: "\n") {
+  for file in relevantFiles {
       if file.isEmpty { continue }
       let content = readFile(in: projectDirectory, relativePath: file)
       allFilesContent += "\nFile: \(file)\n\(content)\n---\n"
   }
 
   let prompt = """
-All project files content:
+Relevant project files content:
 \(allFilesContent)
 
 \(originalPrompt)
@@ -332,7 +345,7 @@ All file paths are relative to the project root: \(projectPath).
                     let docPrompt = try getPrompt(from: "docwriter.prompt", substitutions: [
                         "role": docWriterAgent.role, "goal": goal, "step": step, "step_sanitized": step.filter { $0.isLetter || $0.isNumber }
                     ])
-                    let docResponse = try await runAgent(docWriterAgent, docPrompt, client: client, projectDirectory: projectPath)
+                    let docResponse = try await runAgent(docWriterAgent, docPrompt, client: client, projectDirectory: projectPath, task: step)
                     guard let designDoc = docResponse["design_document"] as? [String: String],
                           let path = designDoc["path"], let content = designDoc["content"] else {
                         throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "DocWriter failed to produce a design document."])
@@ -344,7 +357,7 @@ All file paths are relative to the project root: \(projectPath).
                     let verifyDesignPrompt = try getPrompt(from: "verifier_design.prompt", substitutions: [
                         "role": verifierAgent.role, "goal": goal, "step": step, "design_document_content": designDocContent
                     ])
-                    let verifyDesignResponse = try await runAgent(verifierAgent, verifyDesignPrompt, client: client, projectDirectory: projectPath)
+                    let verifyDesignResponse = try await runAgent(verifierAgent, verifyDesignPrompt, client: client, projectDirectory: projectPath, task: "Verify the design for the step: \(step)")
                     if let verified = verifyDesignResponse["verified"] as? Bool, verified {
                         print("Design for step '\(step)' has been verified.")
                     } else {
@@ -377,7 +390,7 @@ All file paths are relative to the project root: \(projectPath).
                     ])
                 }
                 
-                let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath)
+                let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath, task: "Implement the design for the step: \(step)")
                 
                 if let filesArray = implResponse["files"] as? [[String: String]] {
                     generatedFiles = filesArray
@@ -398,7 +411,7 @@ All file paths are relative to the project root: \(projectPath).
                 let verifyImplPrompt = try getPrompt(from: "verifier_impl.prompt", substitutions: [
                     "design_document_content": designDocContent, "code_files_content": updatedCodeFilesContent
                 ])
-                let verifyImplResponse = try await runAgent(verifierAgent, verifyImplPrompt, client: client, projectDirectory: projectPath)
+                let verifyImplResponse = try await runAgent(verifierAgent, verifyImplPrompt, client: client, projectDirectory: projectPath, task: "Verify the implementation for the step: \(step)")
                 if let verified = verifyImplResponse["verified"] as? Bool, verified {
                     print("Implementation for step '\(step)' has been verified.")
                     failureReason = "" // Clear failure reason
@@ -446,7 +459,7 @@ All file paths are relative to the project root: \(projectPath).
         "agilePlanContent": agilePlanContent
     ])
 
-    let nextResponse = try await runAgent(plannerAgent, nextPrompt, client: client, projectDirectory: projectPath)
+    let nextResponse = try await runAgent(plannerAgent, nextPrompt, client: client, projectDirectory: projectPath, task: "Plan the next sprint.")
     let outputData = try JSONSerialization.data(withJSONObject: nextResponse, options: .prettyPrinted)
     try outputData.write(to: URL(fileURLWithPath: nextStepsPath))
     print("NextSteps.json updated for the next sprint.")

@@ -12,3 +12,15 @@ To design and manage a meta agentic AI framework that:
 - Employs managed judge agents to evaluate performance, ensuring accountability and measurable outcomes.
 - Prevents "spinning the wheels" by enforcing iterative progress, avoiding endless loops of rework or over-optimization.
 - Delivers efficient, scalable, and innovative solutions by continuously refining processes and agent capabilities.
+
+## Documentation Structure
+
+The documentation for this project is organized in a hierarchical structure, starting with this `Vision.md` document. The structure is as follows:
+
+- **Vision.md**: This file, containing the high-level vision and mission for the project.
+- **design/**: This directory contains the detailed design documents for the system.
+    - **design/SystemArchitecture.md**: An overview of the entire system architecture.
+    - **design/BootstrapProcess.md**: A description of the bootstrapping process.
+    - **design/AgentCommunication.md**: A description of how agents communicate with each other.
+    - **design/ConfigurationManager.md**: A description of the Configuration Manager agent.
+    - **design/Workflow.md**: A description of the main workflow of the system.
