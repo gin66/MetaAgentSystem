@@ -340,31 +340,54 @@ All file paths are relative to the project root: \(projectPath).
             for attempt in 1...5 {
                 print("\n--- Attempt \(attempt)/5 ---")
                 
-                // 1. Design Phase (only on first attempt)
+                // 1. Design Phase
+                var designVerified = false
                 if attempt == 1 {
-                    let docPrompt = try getPrompt(from: "docwriter.prompt", substitutions: [
-                        "role": docWriterAgent.role, "goal": goal, "step": step, "step_sanitized": step.filter { $0.isLetter || $0.isNumber }
-                    ])
-                    let docResponse = try await runAgent(docWriterAgent, docPrompt, client: client, projectDirectory: projectPath, task: step)
-                    guard let designDoc = docResponse["design_document"] as? [String: String],
-                          let path = designDoc["path"], let content = designDoc["content"] else {
-                        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "DocWriter failed to produce a design document."])
-                    }
-                    designDocPath = path
-                    designDocContent = content
+                    for designAttempt in 1...3 {
+                        print("\n--- Design Attempt \(designAttempt)/3 ---")
+                        
+                        let docPromptText: String
+                        if designAttempt == 1 {
+                             docPromptText = try getPrompt(from: "docwriter.prompt", substitutions: [
+                                "role": docWriterAgent.role, "goal": goal, "step": step, "step_sanitized": step.filter { $0.isLetter || $0.isNumber }
+                            ])
+                        } else {
+                            print("--- Refining Design ---")
+                            docPromptText = try getPrompt(from: "docwriter.prompt", substitutions: [
+                                "role": docWriterAgent.role, "goal": goal, "step": "\(step) (Refinement attempt after failure: \(failureReason))", "step_sanitized": step.filter { $0.isLetter || $0.isNumber }
+                            ])
+                        }
 
-                    // Verify Design
-                    let verifyDesignPrompt = try getPrompt(from: "verifier_design.prompt", substitutions: [
-                        "role": verifierAgent.role, "goal": goal, "step": step, "design_document_content": designDocContent
-                    ])
-                    let verifyDesignResponse = try await runAgent(verifierAgent, verifyDesignPrompt, client: client, projectDirectory: projectPath, task: "Verify the design for the step: \(step)")
-                    if let verified = verifyDesignResponse["verified"] as? Bool, verified {
-                        print("Design for step '\(step)' has been verified.")
-                    } else {
-                        failureReason = "Design verification failed: \(verifyDesignResponse["feedback"] as? String ?? "No feedback")"
-                        print(failureReason)
-                        // For simplicity, we restart the whole step. A more advanced implementation could try to refine the design.
-                        break 
+                        let docResponse = try await runAgent(docWriterAgent, docPromptText, client: client, projectDirectory: projectPath, task: step)
+                        guard let designDoc = docResponse["design_document"] as? [String: String],
+                              let path = designDoc["path"], let content = designDoc["content"] else {
+                            print("Warning: DocWriter failed to produce a design document. Retrying...")
+                            failureReason = "DocWriter failed to produce a design document."
+                            continue
+                        }
+                        designDocPath = path
+                        designDocContent = content
+
+                        // Verify Design
+                        let verifyDesignPrompt = try getPrompt(from: "verifier_design.prompt", substitutions: [
+                            "role": verifierAgent.role, "goal": goal, "step": step, "design_document_content": designDocContent
+                        ])
+                        let verifyDesignResponse = try await runAgent(verifierAgent, verifyDesignPrompt, client: client, projectDirectory: projectPath, task: "Verify the design for the step: \(step)")
+                        if let verified = verifyDesignResponse["verified"] as? Bool, verified {
+                            print("Design for step '\(step)' has been verified.")
+                            designVerified = true
+                            failureReason = "" // Clear failure reason
+                            break
+                        } else {
+                            failureReason = "Design verification failed: \(verifyDesignResponse["feedback"] as? String ?? "No feedback")"
+                            print(failureReason)
+                        }
+                    }
+
+                    if !designVerified {
+                        print("Design phase failed after 3 attempts for step: \(step). Discarding all changes and stopping.")
+                        gitForceCheckout(in: projectPath)
+                        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Design phase failed after 3 attempts. Changes were discarded."])
                     }
                 }
 
