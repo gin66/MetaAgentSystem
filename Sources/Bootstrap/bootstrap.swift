@@ -430,18 +430,53 @@ All file paths are relative to the project root: \(projectPath).
                 }
 
                 // 3. Verify Implementation
-                let updatedCodeFilesContent = generatedFiles.map { "Path: \($0["path"] ?? "")\n\($0["content"] ?? "")" }.joined(separator: "\n---\n")
-                let verifyImplPrompt = try getPrompt(from: "verifier_impl.prompt", substitutions: [
-                    "design_document_content": designDocContent, "code_files_content": updatedCodeFilesContent
-                ])
-                let verifyImplResponse = try await runAgent(verifierAgent, verifyImplPrompt, client: client, projectDirectory: projectPath, task: "Verify the implementation for the step: \(step)")
-                if let verified = verifyImplResponse["verified"] as? Bool, verified {
-                    print("Implementation for step '\(step)' has been verified.")
-                    failureReason = "" // Clear failure reason
-                } else {
-                    failureReason = "Implementation verification failed: \(verifyImplResponse["feedback"] as? String ?? "No feedback")"
-                    print(failureReason)
-                    continue // Retry with refinement
+                var implementationVerified = false
+                for implAttempt in 1...3 {
+                    print("--- Implementation Verification Attempt \(implAttempt)/3 ---")
+                    let updatedCodeFilesContent = generatedFiles.map { "Path: \($0["path"] ?? "")\n\($0["content"] ?? "")" }.joined(separator: "\n---\n")
+                    let verifyImplPrompt = try getPrompt(from: "verifier_impl.prompt", substitutions: [
+                        "design_document_content": designDocContent, "code_files_content": updatedCodeFilesContent
+                    ])
+                    let verifyImplResponse = try await runAgent(verifierAgent, verifyImplPrompt, client: client, projectDirectory: projectPath, task: "Verify the implementation for the step: \(step)")
+                    if let verified = verifyImplResponse["verified"] as? Bool, verified {
+                        print("Implementation for step '\(step)' has been verified.")
+                        failureReason = "" // Clear failure reason
+                        implementationVerified = true
+                        break
+                    } else {
+                        failureReason = "Implementation verification failed: \(verifyImplResponse["feedback"] as? String ?? "No feedback")"
+                        print(failureReason)
+                        // Before we retry, let's try to refine the code
+                        print("--- Refining Implementation based on verification feedback ---")
+                        let activeAgent = refinerAgent
+                        let agentPrompt = try getPrompt(from: "refiner.prompt", substitutions: [
+                            "role": refinerAgent.role,
+                            "baseDescription": baseDescription,
+                            "design_document_content": designDocContent,
+                            "failure_reason": failureReason,
+                            "code_files_content": updatedCodeFilesContent
+                        ])
+                        let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath, task: "Refine the implementation for the step: \(step)")
+                        if let filesArray = implResponse["files"] as? [[String: String]] {
+                            generatedFiles = filesArray
+                            for file in filesArray {
+                                if let path = file["path"], let content = file["content"] {
+                                    let url = URL(fileURLWithPath: "\(projectPath)/\(path)")
+                                    try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                                    try content.data(using: .utf8)?.write(to: url)
+                                    print("Refined: \(path)")
+                                }
+                            }
+                        } else {
+                            print("Warning: \(activeAgent.name) provided no files in the response during refinement.")
+                        }
+                    }
+                }
+
+                if !implementationVerified {
+                    print("Implementation verification failed after 3 attempts for step: \(step). Discarding changes for this step and retrying from scratch.")
+                    gitForceCheckout(in: projectPath)
+                    continue // This will go to the next attempt of the main loop (1...5)
                 }
 
                 // 4. Build and Test
