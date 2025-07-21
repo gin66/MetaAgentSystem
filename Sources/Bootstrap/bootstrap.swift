@@ -114,19 +114,30 @@ func getPrompt(from file: String, substitutions: [String: String] = [:]) throws 
 
 
 // MARK: - AI Agent Interaction
-func logOllamaCall(model: String, prompt: String, response: String) {
+func logOllamaCall(model: String, prompt: String, response: String? = nil) {
     let timestamp = ISO8601DateFormatter().string(from: Date())
-    let logEntry = """
+    var logEntry = """
     ---
     Timestamp: \(timestamp)
     Model: \(model)
     Prompt:
     \(prompt)
-    Response:
-    \(response)
-    ---
     
     """
+
+    if let response = response {
+        logEntry += """
+        Response:
+        \(response)
+        ---
+        
+        """
+    } else {
+        logEntry += """
+        ---
+        
+        """
+    }
     
     if let logFileURL = URL(string: "file:///Users/jochen/src/MetaAgentSystem/ollama.log") {
         do {
@@ -165,26 +176,38 @@ func callOllama(
   let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
   request.body = .bytes(jsonData)
 
+  print("Sending request to Ollama with model: \(model)...")
+  logOllamaCall(model: model, prompt: prompt)
+
   let response = try await client.execute(request, timeout: .seconds(120))
 
   guard response.status == .ok else {
+    let errorDescription = "HTTP error: \(response.status)"
+    print(errorDescription)
+    logOllamaCall(model: model, prompt: prompt, response: errorDescription)
     throw NSError(
       domain: "", code: Int(response.status.code),
-      userInfo: [NSLocalizedDescriptionKey: "HTTP error: \(response.status)"])
+      userInfo: [NSLocalizedDescriptionKey: errorDescription])
   }
 
   let body = try await response.body.collect(upTo: 1024 * 1024 * 10)
   let data = Data(buffer: body)
   let rawString = String(data: data, encoding: .utf8) ?? "No data"
   
+  print("Received response from Ollama.")
   logOllamaCall(model: model, prompt: prompt, response: rawString)
   
   guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+    let errorDescription = "Failed to parse JSON: \(rawString)"
+    print(errorDescription)
+    logOllamaCall(model: model, prompt: prompt, response: errorDescription)
     throw NSError(
-      domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse JSON: \(rawString)"])
+      domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: errorDescription])
   }
 
   if let error = json["error"] as? String {
+    print("Ollama API error: \(error)")
+    logOllamaCall(model: model, prompt: prompt, response: "Ollama API error: \(error)")
     throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: error])
   }
 
@@ -192,10 +215,14 @@ func callOllama(
     let responseData = responseString.data(using: .utf8),
     let result = try JSONSerialization.jsonObject(with: responseData) as? [String: Any]
   else {
+    let errorDescription = "Failed to parse LLM response: \(rawString)"
+    print(errorDescription)
+    logOllamaCall(model: model, prompt: prompt, response: errorDescription)
     throw NSError(
-      domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse LLM response: \(rawString)"])
+      domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: errorDescription])
   }
 
+  print("Successfully parsed Ollama response.")
   return result
 }
 
