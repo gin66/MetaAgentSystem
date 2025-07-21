@@ -1,11 +1,12 @@
+// Unit tests for the AgentManager.
 import XCTest
 @testable import MetaAgentSystem
-
-extension AgentTests: XCTestCase {
-    func testAgentInitialization() throws {
-        let agent = Agent(id: "agent_001", role: "admin", performanceScore: 0.95)
-        XCTAssertEqual(agent.id, "agent_001")
-        XCTAssertEqual(agent.role, "admin")
-        XCTAssertEqual(agent.performanceScore, 0.95, accuracy: 0.0001)
+class AgentTests: XCTestCase {
+    func testCreateAgent() throws {
+        let agentManager = AgentManager()
+        let newAgent = agentManager.createAgent(id: "agent_002", role: "user", performanceScore: 0.85)
+        XCTAssertEqual(newAgent.id, "agent_002")
+        XCTAssertEqual(newAgent.role, "user")
+        XCTAssertEqual(newAgent.performanceScore, 0.85, accuracy: 0.0001)
     }
 }
