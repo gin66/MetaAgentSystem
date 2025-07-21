@@ -1,3 +1,5 @@
+import Foundation
+
 struct Agent {
     let id: String
     let role: String
