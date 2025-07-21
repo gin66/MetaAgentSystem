@@ -8,4 +8,4 @@ Design Document:
 {{design_document_content}}
 ---
 
-Output JSON: {"files": [{"path": "Sources/MetaAgentSystem/File.swift", "content": "full code here"}, ...]}
+Output JSON: {"files": [{"path": "Sources/MetaAgentSystem/File.swift", "content": "full code here"}, {"path": "Tests/MetaAgentSystemTests/FileTests.swift", "content": "full test code here"}]}
