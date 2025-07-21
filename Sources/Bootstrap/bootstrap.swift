@@ -12,6 +12,9 @@ func listProjectFiles(in directory: String) -> String {
     var result = [String]()
     if let enumerator = fm.enumerator(atPath: directory) {
         for case let path as String in enumerator {
+            if path.contains("/.build/") || path.contains("/.git/") || path.hasPrefix(".build/") || path.hasPrefix(".git/") {
+                continue
+            }
             if path.hasSuffix(".swift") || path.hasSuffix(".md") || path.hasSuffix(".txt") || path.hasSuffix(".json") {
                 result.append(path)
             }
@@ -21,6 +24,7 @@ func listProjectFiles(in directory: String) -> String {
 }
 
 func readFile(in directory: String, relativePath: String) -> String {
+
     let fullPath = "\(directory)/\(relativePath)"
     do {
         return try String(contentsOfFile: fullPath, encoding: .utf8)
