@@ -1,8 +1,11 @@
-// MARK: - MetaAgentSystem
+import Foundation
+
 @main
 struct MetaAgentSystem {
     static func main() async throws {
-        // Main entry point for the application
-        print("Hello World")
+        let client = OllamaClient()
+        let samplePrompt = "Hello, Ollama!"
+        let responseJson = try await client.sendRequest(prompt: samplePrompt)
+        print("Response from Ollama API: \(responseJson)")
     }
 }
