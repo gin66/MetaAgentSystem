@@ -12,6 +12,18 @@ Develop a Meta Agentic AI System in a dedicated `MetaAgentSystem` sub-folder, us
 - Incorporate stakeholder feedback after each sprint.
 - Prioritize modularity, scalability, and preventing infinite loops.
 
+## Agent Communication Protocol
+
+For every agent run, the complete source code of all project files (`.swift`, `.md`, `.txt`, `.json`) is provided as context. This ensures that agents have full visibility into the current state of the project without needing to request individual files.
+
+All invocations of the Ollama API are logged to `ollama.log` in the project root. Each log entry includes a timestamp, the model used, the full prompt sent to the model, and the raw response received from the model. This provides a detailed audit trail for debugging and performance analysis.
+
+## Agent Communication Protocol
+
+For every agent run, the complete source code of all project files (`.swift`, `.md`, `.txt`, `.json`) is provided as context. This ensures that agents have full visibility into the current state of the project without needing to request individual files.
+
+All invocations of the Ollama API are logged to `ollama.log` in the project root. Each log entry includes a timestamp, the model used, the full prompt sent to the model, and the raw response received from the model. This provides a detailed audit trail for debugging and performance analysis.
+
 ## Sprint Plan (Logical, Testable Steps)
 
 ### Sprint 1: Initial Setup and Hello World

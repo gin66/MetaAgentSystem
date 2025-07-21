@@ -114,6 +114,36 @@ func getPrompt(from file: String, substitutions: [String: String] = [:]) throws 
 
 
 // MARK: - AI Agent Interaction
+func logOllamaCall(model: String, prompt: String, response: String) {
+    let timestamp = ISO8601DateFormatter().string(from: Date())
+    let logEntry = """
+    ---
+    Timestamp: \(timestamp)
+    Model: \(model)
+    Prompt:
+    \(prompt)
+    Response:
+    \(response)
+    ---
+    
+    """
+    
+    if let logFileURL = URL(string: "file:///Users/jochen/src/MetaAgentSystem/ollama.log") {
+        do {
+            let fileHandle = try FileHandle(forWritingTo: logFileURL)
+            fileHandle.seekToEndOfFile()
+            fileHandle.write(logEntry.data(using: .utf8)!)
+            fileHandle.closeFile()
+        } catch {
+            do {
+                try logEntry.data(using: .utf8)?.write(to: logFileURL)
+            } catch {
+                print("Could not write to ollama.log: \(error)")
+            }
+        }
+    }
+}
+
 func callOllama(
   client: HTTPClient, prompt: String, system: String? = nil, model: String = bootstrap_model
 ) async throws -> [String: Any] {
@@ -147,6 +177,8 @@ func callOllama(
   let data = Data(buffer: body)
   let rawString = String(data: data, encoding: .utf8) ?? "No data"
   
+  logOllamaCall(model: model, prompt: prompt, response: rawString)
+  
   guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
     throw NSError(
       domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse JSON: \(rawString)"])
@@ -179,38 +211,24 @@ func runAgent(
   let systemPrompt = "Output ONLY the precise JSON as specified in the prompt. No explanations, wrappers, or additional content. Adhere to format exactly."
   
   let filesList = await listProjectFiles(in: projectDirectory)
-  var prompt = """
-Available files in the project (relative paths):
-\(filesList)
+  var allFilesContent = ""
+  for file in filesList.components(separatedBy: "\n") {
+      if file.isEmpty { continue }
+      let content = readFile(in: projectDirectory, relativePath: file)
+      allFilesContent += "\nFile: \(file)\n\(content)\n---\n"
+  }
 
-If you need the content of specific files (use relative paths), output ONLY: {"need_files": ["Sources/Example.swift", "docs/example.md"]}
+  let prompt = """
+All project files content:
+\(allFilesContent)
 
-Otherwise, output the required JSON.
-  
 \(originalPrompt)
 """
   
-  var iteration = 0
-  while iteration < 3 {
-    iteration += 1
-    print("Call ollama \(agent.model)")
-    let json = try await callOllama(client: client, prompt: prompt, system: systemPrompt, model: agent.model)
-    
-    if let needFiles = json["need_files"] as? [String], !needFiles.isEmpty {
-      print("need files: \(needFiles)")
-      var additional = "\n\nProvided file contents:\n"
-      for file in needFiles {
-        let content = readFile(in: projectDirectory, relativePath: file)
-        additional += "\nFile: \(file)\n\(content)\n---\n"
-      }
-      prompt += additional + "\n\nNow, provide the final JSON output as specified in the original prompt."
-      continue
-    }
-    
-    return json
-  }
+  print("Call ollama \(agent.model)")
+  let json = try await callOllama(client: client, prompt: prompt, system: systemPrompt, model: agent.model)
   
-  throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Too many file request iterations."])
+  return json
 }
 
 // MARK: - Core Workflow
