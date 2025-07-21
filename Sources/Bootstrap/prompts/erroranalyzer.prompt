@@ -6,7 +6,7 @@ When you find such an error, you must:
 3.  Provide a clear analysis explaining that the code should be modified to use the existing definition instead of creating a new one.
 4.  Return the analysis and the path to the relevant file in a JSON object.
 
-You will be given the build error output and the content of the relevant files.
+You will be given the build error output and the content of the relevant files. The error output uses absolute paths. Change it to the relative paths as below.
 
 Example Input:
 - Build Error: "projects/MetaAgentSystem/Sources/MetaAgentSystem/Generated.swift:5:8: error: invalid redeclaration of 'Task'"
