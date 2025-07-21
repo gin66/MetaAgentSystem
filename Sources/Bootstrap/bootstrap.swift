@@ -292,6 +292,7 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
     let verifierAgent = Agent(name: "Verifier", role: "an expert software engineering verifier for designs and implementations")
     let codeGenAgent = Agent(name: "CodeGenerator", role: "a senior Swift developer for generating high-quality, functional code")
     let refinerAgent = Agent(name: "CodeRefiner", role: "an expert code reviewer and fixer for refining Swift code based on errors")
+    let errorAnalyzerAgent = Agent(name: "ErrorAnalyzer", role: "an expert Swift build error analyst")
 
     // Prepare base description for prompts
     let nextStepsPath = "\(projectPath)/NextSteps.json"
@@ -336,6 +337,7 @@ All file paths are relative to the project root: \(projectPath).
             var designDocContent = ""
             var generatedFiles: [[String: String]] = []
             var failureReason = ""
+            var additionalContext = ""
 
             for attempt in 1...5 {
                 print("\n--- Attempt \(attempt)/5 ---")
@@ -392,7 +394,7 @@ All file paths are relative to the project root: \(projectPath).
                 }
 
                 // 2. Implementation or Refinement
-                let codeFilesContent = generatedFiles.map { "Path: \($0["path"] ?? "")\n\($0["content"] ?? "")" }.joined(separator: "\n---\n")
+                var codeFilesContent = generatedFiles.map { "Path: \($0["path"] ?? "")\n\($0["content"] ?? "")" }.joined(separator: "\n---\n")
                 let activeAgent: Agent
                 let agentPrompt: String
 
@@ -404,6 +406,11 @@ All file paths are relative to the project root: \(projectPath).
                 } else {
                     print("--- Refining Implementation ---")
                     activeAgent = refinerAgent
+                    
+                    if !additionalContext.isEmpty {
+                        codeFilesContent += "\n\n--- Additional Context: Original Definitions ---\n" + additionalContext
+                    }
+
                     agentPrompt = try getPrompt(from: "refiner.prompt", substitutions: [
                         "role": refinerAgent.role,
                         "baseDescription": baseDescription,
@@ -494,7 +501,33 @@ All file paths are relative to the project root: \(projectPath).
                     break 
                 } else {
                     failureReason = validationOutput
-                    print("Validation failed: \(failureReason)")
+                    print("Validation failed. Running ErrorAnalyzerAgent...")
+
+                    let errorAnalysisPrompt = try getPrompt(from: "erroranalyzer.prompt", substitutions: [
+                        "failure_reason": failureReason
+                    ])
+                    
+                    do {
+                        let errorResponse = try await runAgent(errorAnalyzerAgent, errorAnalysisPrompt, client: client, projectDirectory: projectPath, task: "Analyze build failure")
+                        if let analysis = errorResponse["analysis"] as? String {
+                            print("Error analysis received: \(analysis)")
+                            failureReason = "\(analysis)\n\nFull build output:\n\(failureReason)"
+                        } else {
+                            print("Warning: ErrorAnalyzerAgent did not provide a valid analysis.")
+                        }
+
+                        if let relevantFiles = errorResponse["relevant_files"] as? [String] {
+                            print("Error analyzer identified relevant files: \(relevantFiles.joined(separator: ", "))")
+                            additionalContext = "" // Clear previous context
+                            for file in relevantFiles {
+                                let content = readFile(in: projectPath, relativePath: file)
+                                additionalContext += "\n\n--- Original Definition File: \(file) ---\n\(content)"
+                            }
+                        }
+
+                    } catch {
+                        print("ErrorAnalyzerAgent failed: \(error.localizedDescription). Proceeding with original failure reason.")
+                    }
                 }
                 
                 if attempt == 5 {
