@@ -1,7 +1,6 @@
 import Foundation
-
 struct OllamaClient {
-    func sendRequest(prompt: String) async throws -> String {
+    func sendRequest(prompt: String) async throws -> OllamaResponse {
         // Prepare URL and Request
         guard let url = URL(string: "http://localhost:11434/api/generate") else {
             throw URLError(.badURL)
@@ -17,7 +16,8 @@ struct OllamaClient {
         // Send Request and Handle Response
         let (data, response) = try await URLSession.shared.data(for: request)
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-            return String(data: data, encoding: .utf8) ?? ""
+            let decodedResponse = try JSONDecoder().decode(OllamaResponse.self, from: data)
+            return decodedResponse
         } else {
             throw URLError(.badServerResponse)
         }
