@@ -1,15 +1,22 @@
 {
-  "sprint_number" : 1,
-  "goal" : "Verify basic Ollama API integration.",
   "acceptance_criteria" : [
-    "The program compiles successfully.",
-    "The program executes the API call to Ollama.",
-    "The output is valid JSON as per Ollama's structured output mode."
+    "Agent struct is correctly defined and can be instantiated",
+    "Task struct is correctly defined and can be instantiated",
+    "CLI commands for creating and listing agents work as expected",
+    "CLI commands for creating and listing tasks work as expected"
   ],
-  "deliverable" : "Updated Swift program in MetaAgentSystem sub-folder that makes an Ollama API call and outputs JSON.",
+  "deliverable" : "System to create, store, and manage agents and tasks with CLI commands",
+  "goal" : "Define and manage agent and task structures",
+  "sprint_number" : 2,
   "steps" : [
-    "Write code to send a sample prompt to the Ollama API and capture the JSON response.",
-    "Parse the structured JSON output using Ollama's structured output mode.",
-    "Add basic error handling for network issues or invalid responses."
+    "Create Agent struct with ID, role, performance score fields",
+    "Implement methods for creating new agents",
+    "Define Task struct with ID, description, assigned agent, status fields",
+    "Implement in-memory storage system for agents and tasks",
+    "Write unit tests for Agent and Task creation",
+    "Develop CLI command to create a new agent",
+    "Develop CLI command to list all agents",
+    "Develop CLI command to create a new task",
+    "Develop CLI command to list all tasks"
   ]
 }
