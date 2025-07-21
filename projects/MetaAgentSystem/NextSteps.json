@@ -1,8 +1,6 @@
 {
   "goal" : "Verify basic Ollama API integration.",
   "steps" : [
-    "Create a new Swift file for the main program in MetaAgentSystem folder",
-    "Import necessary modules (Foundation, OpenAPIKit)",
     "Define the prompt to send to the Ollama API",
     "Set up an asynchronous function to make the API call",
     "Handle potential errors during the API request",
