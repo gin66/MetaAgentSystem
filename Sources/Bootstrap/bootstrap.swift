@@ -383,38 +383,58 @@ All file paths are relative to the project root: \(projectPath).
     } else {
         throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to read features."])
     }
-
-    // Initialize features if empty using FeatureInitializer
-    if features.isEmpty {
-        print("\n--- Initializing Feature Database with FeatureInitializer ---")
-        let visionContent = readFile(in: projectPath, relativePath: "docs/Vision.md")
-        let stakeholderContent = readFile(in: projectPath, relativePath: "docs/StakeholderRequirements.md")
-        let documentsContent = """
+// Initialize features if empty using FeatureInitializer
+if features.isEmpty {
+    print("\n--- Initializing Feature Database with FeatureInitializer ---")
+    let visionContent = readFile(in: projectPath, relativePath: "docs/Vision.md")
+    let stakeholderContent = readFile(in: projectPath, relativePath: "docs/StakeholderRequirements.md")
+    let documentsContent = """
 Vision.md:
 \(visionContent)
 
 StakeholderRequirements.md:
 \(stakeholderContent)
 """
-        let initPrompt = try getPrompt(byName: "FeatureInitializer", substitutions: ["documents_content": documentsContent])
-        let initResponse = try await runAgent(featureInitializerAgent, initPrompt, client: client, projectDirectory: projectPath, task: "Initialize features or meta-feature")
-        if let initFeatures = initResponse["features"] as? [[String: Any]] {
-            let featureDetails = String(data: try JSONSerialization.data(withJSONObject: initFeatures, options: .prettyPrinted), encoding: .utf8) ?? ""
-            let createPrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "create", "feature_details": featureDetails])
-            let createResponse = try await runAgent(requirementsManagerAgent, createPrompt, client: client, projectDirectory: projectPath, task: "Create initial features")
-            if let status = createResponse["status"] as? String, status == "success", let newFeatures = createResponse["features"] as? [[String: Any]] {
-                features = newFeatures
-                let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
-                try data.write(to: URL(fileURLWithPath: featuresPath))
-                gitCommit(message: "bootstrap: chore: Initialize feature database", in: projectPath)
-                print("Feature database initialized with meta-feature or initial features.")
-            } else {
-                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create initial features."])
-            }
+    let initPrompt = try getPrompt(byName: "FeatureInitializer", substitutions: ["documents_content": documentsContent])
+    let initResponse = try await runAgent(featureInitializerAgent, initPrompt, client: client, projectDirectory: projectPath, task: "Initialize features or meta-feature")
+    
+    guard let initFeatures = initResponse["features"] as? [[String: Any]], !initFeatures.isEmpty else {
+        print("FeatureInitializer failed to produce valid features. Creating fallback meta-feature.")
+        let metaFeature = [
+            "id": "meta-1",
+            "description": "Implement MetaAgentSystem per Vision and StakeholderRequirements",
+            "test_plan": "Verify system initializes, agents communicate, and tasks are assigned per Vision.md and StakeholderRequirements.md",
+            "status": "pending",
+            "priority": 0
+        ] as [String: Any]
+        let featureDetails = String(data: try JSONSerialization.data(withJSONObject: [metaFeature], options: .prettyPrinted), encoding: .utf8) ?? ""
+        let createPrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "create", "feature_details": featureDetails])
+        let createResponse = try await runAgent(requirementsManagerAgent, createPrompt, client: client, projectDirectory: projectPath, task: "Create fallback meta-feature")
+        if let status = createResponse["status"] as? String, status == "success", let newFeatures = createResponse["features"] as? [[String: Any]] {
+            features = newFeatures
+            let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
+            try data.write(to: URL(fileURLWithPath: featuresPath))
+            gitCommit(message: "bootstrap: chore: Initialize feature database with meta-feature", in: projectPath)
+            print("Feature database initialized with meta-feature.")
         } else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to initialize features."])
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create fallback meta-feature."])
         }
+        return
     }
+    
+    let featureDetails = String(data: try JSONSerialization.data(withJSONObject: initFeatures, options: .prettyPrinted), encoding: .utf8) ?? ""
+    let createPrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "create", "feature_details": featureDetails])
+    let createResponse = try await runAgent(requirementsManagerAgent, createPrompt, client: client, projectDirectory: projectPath, task: "Create initial features")
+    if let status = createResponse["status"] as? String, status == "success", let newFeatures = createResponse["features"] as? [[String: Any]] {
+        features = newFeatures
+        let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
+        try data.write(to: URL(fileURLWithPath: featuresPath))
+        gitCommit(message: "bootstrap: chore: Initialize feature database", in: projectPath)
+        print("Feature database initialized with \(features.count) features.")
+    } else {
+        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create initial features."])
+    }
+}
 
     // Prioritize features
     print("\n--- Prioritizing Features ---")
