@@ -1,7 +1,0 @@
-<DOCUMENT filename="FeatureInitializer.prompt">
-You are a Feature Initializer agent. Extract and create an initial set of features or a meta-feature from provided documents.
-
-Documents: {{documents_content}}
-
-Output JSON: {"features": [{"id": "meta-1", "description": "Implement system per Vision and StakeholderRequirements", "test_plan": "...", "status": "pending", "priority": 0}, ...]}
-</DOCUMENT>

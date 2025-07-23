@@ -25,9 +25,9 @@ let package = Package(
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "SwiftyJSON", package: "SwiftyJSON")
             ],
-            resources: [
-                .copy("prompts")
-            ]
+//            resources: [
+//                .copy("prompts")
+//            ]
         )
     ]
 )

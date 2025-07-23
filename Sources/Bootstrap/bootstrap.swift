@@ -105,15 +105,44 @@ func validateSwiftPackage(in directory: String) -> (Bool, String) {
 }
 
 // MARK: - Prompt Management
-func getPrompt(from file: String, substitutions: [String: String] = [:]) throws -> String {
-    let path = "Sources/Bootstrap/prompts/\(file)"
-    var promptTemplate = try String(contentsOf: URL(fileURLWithPath: path), encoding: .utf8)
-    
-    for (key, value) in substitutions {
-        promptTemplate = promptTemplate.replacingOccurrences(of: "{{\((key))}}", with: value)
+final class PromptManager: Sendable {
+    private let prompts: [String: String]
+
+    init(filePath: String) {
+        do {
+            let data = try Data(contentsOf: URL(fileURLWithPath: filePath))
+            if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: String] {
+                self.prompts = json
+            }
+            else {
+		self.prompts = [:]
+            }
+        } catch {
+	    self.prompts = [:]
+            print("Error loading prompts: \(error)")
+        }
     }
-    
-    return promptTemplate
+
+    func getPrompt(byName name: String, substitutions: [String: String] = [:]) -> String? {
+        guard var promptTemplate = prompts[name] else {
+            return nil
+        }
+
+        for (key, value) in substitutions {
+            promptTemplate = promptTemplate.replacingOccurrences(of: "{{\(key)}}", with: value)
+        }
+
+        return promptTemplate
+    }
+}
+
+let promptManager = PromptManager(filePath: "docs/prompts.json")
+
+func getPrompt(byName name: String, substitutions: [String: String] = [:]) throws -> String {
+    guard let prompt = promptManager.getPrompt(byName: name, substitutions: substitutions) else {
+        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Prompt not found: \(name)"])
+    }
+    return prompt
 }
 
 
@@ -244,7 +273,7 @@ func runAgent(
   let configManagerAgent = Agent(name: "ConfigurationManager", role: "an expert at identifying relevant files for a task")
   let allFiles = await listProjectFiles(in: projectDirectory)
   
-  let configPrompt = try getPrompt(from: "configmanager.prompt", substitutions: [
+  let configPrompt = try getPrompt(byName: "configmanager", substitutions: [
       "task": task,
       "files": allFiles
   ])
@@ -347,7 +376,7 @@ All file paths are relative to the project root: \(projectPath).
 
     // Load features using RequirementsManager
     var features: [[String: Any]] = []
-    let readPrompt = try getPrompt(from: "RequirementsManager.prompt", substitutions: ["operation": "read", "feature_details": ""])
+    let readPrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "read", "feature_details": ""])
     let readResponse = try await runAgent(requirementsManagerAgent, readPrompt, client: client, projectDirectory: projectPath, task: "Read feature database")
     if let status = readResponse["status"] as? String, status == "success", let readFeatures = readResponse["features"] as? [[String: Any]] {
         features = readFeatures
@@ -367,11 +396,11 @@ Vision.md:
 StakeholderRequirements.md:
 \(stakeholderContent)
 """
-        let initPrompt = try getPrompt(from: "FeatureInitializer.prompt", substitutions: ["documents_content": documentsContent])
+        let initPrompt = try getPrompt(byName: "FeatureInitializer", substitutions: ["documents_content": documentsContent])
         let initResponse = try await runAgent(featureInitializerAgent, initPrompt, client: client, projectDirectory: projectPath, task: "Initialize features or meta-feature")
         if let initFeatures = initResponse["features"] as? [[String: Any]] {
             let featureDetails = String(data: try JSONSerialization.data(withJSONObject: initFeatures, options: .prettyPrinted), encoding: .utf8) ?? ""
-            let createPrompt = try getPrompt(from: "RequirementsManager.prompt", substitutions: ["operation": "create", "feature_details": featureDetails])
+            let createPrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "create", "feature_details": featureDetails])
             let createResponse = try await runAgent(requirementsManagerAgent, createPrompt, client: client, projectDirectory: projectPath, task: "Create initial features")
             if let status = createResponse["status"] as? String, status == "success", let newFeatures = createResponse["features"] as? [[String: Any]] {
                 features = newFeatures
@@ -392,11 +421,11 @@ StakeholderRequirements.md:
     let featuresListJSON = try JSONSerialization.data(withJSONObject: features.map { ["id": $0["id"] ?? "", "description": $0["description"] ?? ""] }, options: [])
     let featuresList = String(data: featuresListJSON, encoding: .utf8) ?? ""
     let criteria = "urgency, impact, dependencies"
-    let prioritizerPrompt = try getPrompt(from: "Prioritizer.prompt", substitutions: ["features_list": featuresList, "criteria": criteria])
+    let prioritizerPrompt = try getPrompt(byName: "Prioritizer", substitutions: ["features_list": featuresList, "criteria": criteria])
     let prioritizerResponse = try await runAgent(prioritizerAgent, prioritizerPrompt, client: client, projectDirectory: projectPath, task: "Prioritize features")
     if let prioritized = prioritizerResponse["prioritized_features"] as? [[String: Any]] {
         let priorityUpdates = String(data: try JSONSerialization.data(withJSONObject: prioritized, options: .prettyPrinted), encoding: .utf8) ?? ""
-        let updatePriorityPrompt = try getPrompt(from: "RequirementsManager.prompt", substitutions: ["operation": "update", "feature_details": priorityUpdates])
+        let updatePriorityPrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "update", "feature_details": priorityUpdates])
         let updatePriorityResponse = try await runAgent(requirementsManagerAgent, updatePriorityPrompt, client: client, projectDirectory: projectPath, task: "Update feature priorities")
         if let status = updatePriorityResponse["status"] as? String, status == "success", let updatedFeatures = updatePriorityResponse["features"] as? [[String: Any]] {
             features = updatedFeatures
@@ -422,7 +451,7 @@ StakeholderRequirements.md:
     print("\n--- Processing Feature \(featureId): \(description) ---")
 
     // Judge clarity and atomicity
-    let clarityPrompt = try getPrompt(from: "ClarityJudge.prompt", substitutions: ["feature_description": description])
+    let clarityPrompt = try getPrompt(byName: "ClarityJudge", substitutions: ["feature_description": description])
     let clarityResponse = try await runAgent(clarityJudgeAgent, clarityPrompt, client: client, projectDirectory: projectPath, task: "Judge clarity for feature \(featureId)")
     let clear = clarityResponse["clear"] as? Bool ?? false
     let atomic = clarityResponse["atomic"] as? Bool ?? false
@@ -431,7 +460,7 @@ StakeholderRequirements.md:
     if !clear || !atomic {
         // Decompose
         print("\n--- Decomposing Feature \(featureId) ---")
-        var decompPrompt = try getPrompt(from: "Decomposition.prompt", substitutions: ["feature_description": description])
+        var decompPrompt = try getPrompt(byName: "Decomposition", substitutions: ["feature_description": description])
         decompPrompt += "\nFor each sub-feature, output an array of objects with 'description' and 'test_plan' keys. Ensure max 5 sub-features."
         let decompResponse = try await runAgent(decompositionAgent, decompPrompt, client: client, projectDirectory: projectPath, task: "Decompose feature \(featureId)")
         if let subFeatures = decompResponse["sub_features"] as? [[String: String]] {
@@ -439,7 +468,7 @@ StakeholderRequirements.md:
             let decomposeDetails = """
 Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJSON) with ids like \(featureId).1, priority 0, status 'pending'.
 """
-            let decomposePrompt = try getPrompt(from: "RequirementsManager.prompt", substitutions: ["operation": "update", "feature_details": decomposeDetails])
+            let decomposePrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "update", "feature_details": decomposeDetails])
             let decomposeResponse = try await runAgent(requirementsManagerAgent, decomposePrompt, client: client, projectDirectory: projectPath, task: "Decompose and update features for \(featureId)")
             if let status = decomposeResponse["status"] as? String, status == "success", let updatedFeatures = decomposeResponse["features"] as? [[String: Any]] {
                 features = updatedFeatures
@@ -453,7 +482,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
         if feedback.lowercased().contains("architecture") || feedback.lowercased().contains("refactor") {
             print("\n--- Refactoring Architecture for Feature \(featureId) ---")
             let archContent = readFile(in: projectPath, relativePath: "design/SystemArchitecture.md")
-            let refactorPrompt = try getPrompt(from: "Refactor.prompt", substitutions: ["feature_description": description, "architecture_content": archContent])
+            let refactorPrompt = try getPrompt(byName: "Refactor", substitutions: ["feature_description": description, "architecture_content": archContent])
             let refactorResponse = try await runAgent(refactorAgent, refactorPrompt, client: client, projectDirectory: projectPath, task: "Refactor for feature \(featureId)")
             if let updatedDesign = refactorResponse["updated_design"] as? [String: String],
                let path = updatedDesign["path"],
@@ -486,12 +515,12 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
                     
                     var docPromptText: String
                     if designAttempt == 1 {
-                        docPromptText = try getPrompt(from: "docwriter.prompt", substitutions: [
+                        docPromptText = try getPrompt(byName: "docwriter", substitutions: [
                             "role": docWriterAgent.role, "goal": goal, "step": step, "step_sanitized": String(step.hash)
                         ])
                     } else {
                         print("--- Refining Design ---")
-                        docPromptText = try getPrompt(from: "docwriter.prompt", substitutions: [
+                        docPromptText = try getPrompt(byName: "docwriter", substitutions: [
                             "role": docWriterAgent.role, "goal": goal, "step": "\(step) (Refinement attempt after failure: \(failureReason))", "step_sanitized": String(step.hash)
                         ])
                     }
@@ -508,7 +537,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
                     designDocContent = content
 
                     // Verify Design
-                    let verifyDesignPrompt = try getPrompt(from: "verifier_design.prompt", substitutions: [
+                    let verifyDesignPrompt = try getPrompt(byName: "verifier_design", substitutions: [
                         "role": verifierAgent.role, "goal": goal, "step": step, "design_document_content": designDocContent
                     ])
                     let verifyDesignResponse = try await runAgent(verifierAgent, verifyDesignPrompt, client: client, projectDirectory: projectPath, task: "Verify the design for feature \(featureId)")
@@ -537,7 +566,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
 
             if failureReason.isEmpty {
                 activeAgent = codeGenAgent
-                agentPrompt = try getPrompt(from: "codegen.prompt", substitutions: [
+                agentPrompt = try getPrompt(byName: "codegen", substitutions: [
                     "role": codeGenAgent.role, "baseDescription": baseDescription, "design_document_content": designDocContent
                 ])
             } else {
@@ -548,7 +577,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
                     codeFilesContent += "\n\n--- Additional Context: Original Definitions ---\n" + additionalContext
                 }
 
-                agentPrompt = try getPrompt(from: "refiner.prompt", substitutions: [
+                agentPrompt = try getPrompt(byName: "refiner", substitutions: [
                     "role": refinerAgent.role,
                     "baseDescription": baseDescription,
                     "design_document_content": designDocContent,
@@ -578,7 +607,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
             for implAttempt in 1...3 {
                 print("--- Implementation Verification Attempt \(implAttempt)/3 ---")
                 let updatedCodeFilesContent = generatedFiles.map { "Path: \($0["path"] ?? "")\n\($0["content"] ?? "")" }.joined(separator: "\n---\n")
-                let verifyImplPrompt = try getPrompt(from: "verifier_impl.prompt", substitutions: [
+                let verifyImplPrompt = try getPrompt(byName: "verifier_impl", substitutions: [
                     "design_document_content": designDocContent, "code_files_content": updatedCodeFilesContent
                 ])
                 let verifyImplResponse = try await runAgent(verifierAgent, verifyImplPrompt, client: client, projectDirectory: projectPath, task: "Verify the implementation for feature \(featureId)")
@@ -593,7 +622,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
                     // Refine based on feedback
                     print("--- Refining Implementation based on verification feedback ---")
                     let activeAgent = refinerAgent
-                    let agentPrompt = try getPrompt(from: "refiner.prompt", substitutions: [
+                    let agentPrompt = try getPrompt(byName: "refiner", substitutions: [
                         "role": refinerAgent.role,
                         "baseDescription": baseDescription,
                         "design_document_content": designDocContent,
@@ -638,7 +667,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
                 
                 // Update feature status using RequirementsManager
                 let completeDetails = "Set status of id \(featureId) to completed"
-                let completePrompt = try getPrompt(from: "RequirementsManager.prompt", substitutions: ["operation": "update", "feature_details": completeDetails])
+                let completePrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "update", "feature_details": completeDetails])
                 let completeResponse = try await runAgent(requirementsManagerAgent, completePrompt, client: client, projectDirectory: projectPath, task: "Mark feature \(featureId) as completed")
                 if let status = completeResponse["status"] as? String, status == "success", let updatedFeatures = completeResponse["features"] as? [[String: Any]] {
                     features = updatedFeatures
@@ -652,7 +681,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
                 failureReason = validationOutput
                 print("Validation failed. Running ErrorAnalyzerAgent...")
 
-                let errorAnalysisPrompt = try getPrompt(from: "erroranalyzer.prompt", substitutions: [
+                let errorAnalysisPrompt = try getPrompt(byName: "erroranalyzer", substitutions: [
                     "failure_reason": failureReason
                 ])
                 
