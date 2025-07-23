@@ -381,7 +381,7 @@ All file paths are relative to the project root: \(projectPath).
     if let status = readResponse["status"] as? String, status == "success", let readFeatures = readResponse["features"] as? [[String: Any]] {
         features = readFeatures
     } else {
-        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to read features."])
+//        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to read features."])
     }
 // Initialize features if empty using FeatureInitializer
 if features.isEmpty {
