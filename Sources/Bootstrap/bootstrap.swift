@@ -262,6 +262,19 @@ func runAgent(
       allFilesContent += "\nFile: \(file)\n\(content)\n---\n"
   }
 
+  if agent.name == "RequirementsManager" {
+      let visionPath = "docs/Vision.md"
+      if !relevantFiles.contains(visionPath) {
+          let visionContent = readFile(in: projectDirectory, relativePath: visionPath)
+          allFilesContent += "\nFile: \(visionPath)\n\(visionContent)\n---\n"
+      }
+      let stakeholderPath = "docs/StakeholderRequirements.md"
+      if !relevantFiles.contains(stakeholderPath) {
+          let stakeholderContent = readFile(in: projectDirectory, relativePath: stakeholderPath)
+          allFilesContent += "\nFile: \(stakeholderPath)\n\(stakeholderContent)\n---\n"
+      }
+  }
+
   let prompt = """
 Relevant project files content:
 \(allFilesContent)
