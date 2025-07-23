@@ -287,6 +287,7 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
     }
 
     // Prepare agents
+    let featureInitializerAgent = Agent(name: "FeatureInitializer", role: "extract and create initial features or meta-feature")
     let requirementsManagerAgent = Agent(name: "RequirementsManager", role: "manage the database of features and use cases")
     let prioritizerAgent = Agent(name: "Prioritizer", role: "prioritize features/use cases")
     let clarityJudgeAgent = Agent(name: "ClarityJudge", role: "judge if a feature is clear enough for implementation")
@@ -341,25 +342,20 @@ All file paths are relative to the project root: \(projectPath).
         throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to read features."])
     }
 
-    // Initialize features if empty
+    // Initialize features if empty using FeatureInitializer
     if features.isEmpty {
-        print("\n--- Initializing Feature Database ---")
+        print("\n--- Initializing Feature Database with FeatureInitializer ---")
+        let visionContent = readFile(in: projectPath, relativePath: "docs/Vision.md")
         let stakeholderContent = readFile(in: projectPath, relativePath: "docs/StakeholderRequirements.md")
-        let initPrompt = """
-Extract features from the following stakeholder requirements document. For each functional requirement, create a separate feature with:
-- id: sequential string starting from "1"
-- description: concise description of the feature
-- test_plan: detailed test strategy, including how to perform tests and acceptance criteria
-- status: "pending"
-- priority: 0 (to be prioritized later)
+        let documentsContent = """
+Vision.md:
+\(visionContent)
 
-Output JSON: {"features": [{"id": "1", "description": "...", "test_plan": "...", "status": "pending", "priority": 0}, ...]}
-        
-Document:
+StakeholderRequirements.md:
 \(stakeholderContent)
 """
-        let systemPrompt = "Output ONLY the JSON."
-        let initResponse = try await callOllama(client: client, prompt: initPrompt, system: systemPrompt)
+        let initPrompt = try getPrompt(from: "FeatureInitializer.prompt", substitutions: ["documents_content": documentsContent])
+        let initResponse = try await runAgent(featureInitializerAgent, initPrompt, client: client, projectDirectory: projectPath, task: "Initialize features or meta-feature")
         if let initFeatures = initResponse["features"] as? [[String: Any]] {
             let featureDetails = String(data: try JSONSerialization.data(withJSONObject: initFeatures, options: .prettyPrinted), encoding: .utf8) ?? ""
             let createPrompt = try getPrompt(from: "RequirementsManager.prompt", substitutions: ["operation": "create", "feature_details": featureDetails])
@@ -369,12 +365,12 @@ Document:
                 let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
                 try data.write(to: URL(fileURLWithPath: featuresPath))
                 gitCommit(message: "bootstrap: chore: Initialize feature database", in: projectPath)
-                print("Feature database initialized.")
+                print("Feature database initialized with meta-feature or initial features.")
             } else {
                 throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create initial features."])
             }
         } else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to extract initial features."])
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to initialize features."])
         }
     }
 
