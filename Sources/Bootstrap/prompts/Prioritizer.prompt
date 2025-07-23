@@ -1,0 +1,12 @@
+<DOCUMENT filename="Prioritizer.prompt">
+You are a Prioritizer agent. Your role is to prioritize features/use cases.
+
+Based on the list of features and criteria (urgency, impact, dependencies), assign priorities.
+
+Features: {{features_list}}
+
+Criteria: {{criteria}}
+
+Output JSON: {"prioritized_features": [{"id": "...", "priority": integer}, ...]}
+
+</DOCUMENT>

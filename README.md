@@ -3,6 +3,12 @@ This file is intended to be read by the AI agents and not parsed by the agentic 
 -->
 # Meta Agentic AI System
 
+## Disclaimer
+
+The code in this repository is AI generated (except minor manual error corrections). Using grok4, gemini or bootstrap.
+
+This is EXPERIMENTAL !
+
 ## Overview
 This project involves developing a Meta Agentic AI system using Swift and Ollama. The system is designed to be self-improving, optimizing agent and LLM performance through adaptive process design and rigorous performance evaluation.
 

@@ -287,7 +287,11 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
     }
 
     // Prepare agents
-    let plannerAgent = Agent(name: "SprintPlanner", role: "an expert project manager for planning Agile sprints")
+    let requirementsManagerAgent = Agent(name: "RequirementsManager", role: "manage the database of features and use cases")
+    let prioritizerAgent = Agent(name: "Prioritizer", role: "prioritize features/use cases")
+    let clarityJudgeAgent = Agent(name: "ClarityJudge", role: "judge if a feature is clear enough for implementation")
+    let decompositionAgent = Agent(name: "Decomposition", role: "decompose complex features")
+    let refactorAgent = Agent(name: "Refactor", role: "refactor system architecture when needed")
     let docWriterAgent = Agent(name: "DocWriter", role: "a senior software architect for creating detailed design documents")
     let verifierAgent = Agent(name: "Verifier", role: "an expert software engineering verifier for designs and implementations")
     let codeGenAgent = Agent(name: "CodeGenerator", role: "a senior Swift developer for generating high-quality, functional code")
@@ -295,14 +299,21 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
     let errorAnalyzerAgent = Agent(name: "ErrorAnalyzer", role: "an expert Swift build error analyst")
 
     // Prepare base description for prompts
-    let nextStepsPath = "\(projectPath)/NextSteps.json"
     var filesDescription = ""
     let metadataFiles: [String: String] = [
-        "AgilePlan.md": "Detailed Agile implementation plan.",
         "README.md": "Project overview, setup, and usage instructions.",
-        "StakeholderRequirements.md": "List of all stakeholder requirements.",
-        "Vision.md": "High-level vision for the system.",
+        "docs/StakeholderRequirements.md": "List of all stakeholder requirements.",
+        "docs/Vision.md": "High-level vision for the system.",
         "Package.swift": "Swift Package Manager manifest.",
+        "design/SystemArchitecture.md": "Overview of the entire system architecture.",
+        "design/BootstrapProcess.md": "Description of the bootstrapping process.",
+        "design/AgentCommunication.md": "Description of agent communication.",
+        "design/ConfigurationManager.md": "Description of the Configuration Manager agent.",
+        "design/Workflow.md": "Description of the main workflow.",
+        "design/RequirementsManagement.md": "Description of requirements management and feature database.",
+        "design/Prioritization.md": "Description of use case prioritization.",
+        "design/Decomposition.md": "Description of feature decomposition and hierarchical design.",
+        "design/Refactoring.md": "Description of architecture refactoring.",
     ]
     for (file, desc) in metadataFiles {
         filesDescription += "- \(file): \(desc)\n"
@@ -310,253 +321,362 @@ func bootstrapNextSteps(client: HTTPClient) async throws {
     let baseDescription = """
 The project directory structure:
 \(filesDescription)
-Strictly align all work with AgilePlan.md, StakeholderRequirements.md, and Vision.md.
+Strictly align all work with docs/StakeholderRequirements.md and docs/Vision.md.
 Follow Swift best practices. Ensure code is testable, efficient, and implements real functionality.
 Do not modify bootstrap.swift.
 All file paths are relative to the project root: \(projectPath).
 """
 
-    // Determine current sprint plan
-    let currentNextSteps: [String: Any]?
-    if fileManager.fileExists(atPath: nextStepsPath) {
-        let data = try Data(contentsOf: URL(fileURLWithPath: nextStepsPath))
-        currentNextSteps = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+    // Feature database path
+    let featuresPath = "\(projectPath)/db/features.json"
+    try? fileManager.createDirectory(atPath: "\(projectPath)/db", withIntermediateDirectories: true)
+
+    // Load features using RequirementsManager
+    var features: [[String: Any]] = []
+    let readPrompt = try getPrompt(from: "RequirementsManager.prompt", substitutions: ["operation": "read", "feature_details": ""])
+    let readResponse = try await runAgent(requirementsManagerAgent, readPrompt, client: client, projectDirectory: projectPath, task: "Read feature database")
+    if let status = readResponse["status"] as? String, status == "success", let readFeatures = readResponse["features"] as? [[String: Any]] {
+        features = readFeatures
     } else {
-        currentNextSteps = nil
+        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to read features."])
     }
 
-    // Main workflow loop
-    if let current = currentNextSteps, let steps = current["steps"] as? [String], !steps.isEmpty {
-        let sprintNumber = current["sprint_number"] as? Int ?? 0
-        let goal = current["goal"] as? String ?? "N/A"
+    // Initialize features if empty
+    if features.isEmpty {
+        print("\n--- Initializing Feature Database ---")
+        let stakeholderContent = readFile(in: projectPath, relativePath: "docs/StakeholderRequirements.md")
+        let initPrompt = """
+Extract features from the following stakeholder requirements document. For each functional requirement, create a separate feature with:
+- id: sequential string starting from "1"
+- description: concise description of the feature
+- test_plan: detailed test strategy, including how to perform tests and acceptance criteria
+- status: "pending"
+- priority: 0 (to be prioritized later)
+
+Output JSON: {"features": [{"id": "1", "description": "...", "test_plan": "...", "status": "pending", "priority": 0}, ...]}
         
-        for (index, step) in steps.enumerated() {
-            print("\n--- Implementing Sprint \(sprintNumber), Step \(index + 1)/\(steps.count): \(step) ---")
+Document:
+\(stakeholderContent)
+"""
+        let systemPrompt = "Output ONLY the JSON."
+        let initResponse = try await callOllama(client: client, prompt: initPrompt, system: systemPrompt)
+        if let initFeatures = initResponse["features"] as? [[String: Any]] {
+            let featureDetails = String(data: try JSONSerialization.data(withJSONObject: initFeatures, options: .prettyPrinted), encoding: .utf8) ?? ""
+            let createPrompt = try getPrompt(from: "RequirementsManager.prompt", substitutions: ["operation": "create", "feature_details": featureDetails])
+            let createResponse = try await runAgent(requirementsManagerAgent, createPrompt, client: client, projectDirectory: projectPath, task: "Create initial features")
+            if let status = createResponse["status"] as? String, status == "success", let newFeatures = createResponse["features"] as? [[String: Any]] {
+                features = newFeatures
+                let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
+                try data.write(to: URL(fileURLWithPath: featuresPath))
+                gitCommit(message: "bootstrap: chore: Initialize feature database", in: projectPath)
+                print("Feature database initialized.")
+            } else {
+                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create initial features."])
+            }
+        } else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to extract initial features."])
+        }
+    }
+
+    // Prioritize features
+    print("\n--- Prioritizing Features ---")
+    let featuresListJSON = try JSONSerialization.data(withJSONObject: features.map { ["id": $0["id"] ?? "", "description": $0["description"] ?? ""] }, options: [])
+    let featuresList = String(data: featuresListJSON, encoding: .utf8) ?? ""
+    let criteria = "urgency, impact, dependencies"
+    let prioritizerPrompt = try getPrompt(from: "Prioritizer.prompt", substitutions: ["features_list": featuresList, "criteria": criteria])
+    let prioritizerResponse = try await runAgent(prioritizerAgent, prioritizerPrompt, client: client, projectDirectory: projectPath, task: "Prioritize features")
+    if let prioritized = prioritizerResponse["prioritized_features"] as? [[String: Any]] {
+        let priorityUpdates = String(data: try JSONSerialization.data(withJSONObject: prioritized, options: .prettyPrinted), encoding: .utf8) ?? ""
+        let updatePriorityPrompt = try getPrompt(from: "RequirementsManager.prompt", substitutions: ["operation": "update", "feature_details": priorityUpdates])
+        let updatePriorityResponse = try await runAgent(requirementsManagerAgent, updatePriorityPrompt, client: client, projectDirectory: projectPath, task: "Update feature priorities")
+        if let status = updatePriorityResponse["status"] as? String, status == "success", let updatedFeatures = updatePriorityResponse["features"] as? [[String: Any]] {
+            features = updatedFeatures
+            let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
+            try data.write(to: URL(fileURLWithPath: featuresPath))
+            gitCommit(message: "bootstrap: chore: Update feature priorities", in: projectPath)
+        }
+    }
+
+    // Sort features by priority (lower number = higher priority)
+    features.sort { ($0["priority"] as? Int ?? Int.max) < ($1["priority"] as? Int ?? Int.max) }
+
+    // Process the highest priority pending feature
+    guard let featureIndex = features.firstIndex(where: { ($0["status"] as? String) == "pending" }) else {
+        print("No pending features to process.")
+        return
+    }
+
+    let feature = features[featureIndex]
+    let featureId = feature["id"] as? String ?? "unknown"
+    let description = feature["description"] as? String ?? ""
+    let testPlan = feature["test_plan"] as? String ?? ""
+    print("\n--- Processing Feature \(featureId): \(description) ---")
+
+    // Judge clarity and atomicity
+    let clarityPrompt = try getPrompt(from: "ClarityJudge.prompt", substitutions: ["feature_description": description])
+    let clarityResponse = try await runAgent(clarityJudgeAgent, clarityPrompt, client: client, projectDirectory: projectPath, task: "Judge clarity for feature \(featureId)")
+    let clear = clarityResponse["clear"] as? Bool ?? false
+    let atomic = clarityResponse["atomic"] as? Bool ?? false
+    let feedback = clarityResponse["feedback"] as? String ?? ""
+
+    if !clear || !atomic {
+        // Decompose
+        print("\n--- Decomposing Feature \(featureId) ---")
+        var decompPrompt = try getPrompt(from: "Decomposition.prompt", substitutions: ["feature_description": description])
+        decompPrompt += "\nFor each sub-feature, output an array of objects with 'description' and 'test_plan' keys. Ensure max 5 sub-features."
+        let decompResponse = try await runAgent(decompositionAgent, decompPrompt, client: client, projectDirectory: projectPath, task: "Decompose feature \(featureId)")
+        if let subFeatures = decompResponse["sub_features"] as? [[String: String]] {
+            let subFeaturesJSON = String(data: try JSONSerialization.data(withJSONObject: subFeatures, options: .prettyPrinted), encoding: .utf8) ?? ""
+            let decomposeDetails = """
+Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJSON) with ids like \(featureId).1, priority 0, status 'pending'.
+"""
+            let decomposePrompt = try getPrompt(from: "RequirementsManager.prompt", substitutions: ["operation": "update", "feature_details": decomposeDetails])
+            let decomposeResponse = try await runAgent(requirementsManagerAgent, decomposePrompt, client: client, projectDirectory: projectPath, task: "Decompose and update features for \(featureId)")
+            if let status = decomposeResponse["status"] as? String, status == "success", let updatedFeatures = decomposeResponse["features"] as? [[String: Any]] {
+                features = updatedFeatures
+                let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
+                try data.write(to: URL(fileURLWithPath: featuresPath))
+                gitCommit(message: "bootstrap: chore: Decompose feature \(featureId)", in: projectPath)
+            }
+        }
+
+        // Check for refactoring need
+        if feedback.lowercased().contains("architecture") || feedback.lowercased().contains("refactor") {
+            print("\n--- Refactoring Architecture for Feature \(featureId) ---")
+            let archContent = readFile(in: projectPath, relativePath: "design/SystemArchitecture.md")
+            let refactorPrompt = try getPrompt(from: "Refactor.prompt", substitutions: ["feature_description": description, "architecture_content": archContent])
+            let refactorResponse = try await runAgent(refactorAgent, refactorPrompt, client: client, projectDirectory: projectPath, task: "Refactor for feature \(featureId)")
+            if let updatedDesign = refactorResponse["updated_design"] as? [String: String],
+               let path = updatedDesign["path"],
+               let content = updatedDesign["content"] {
+                let url = URL(fileURLWithPath: "\(projectPath)/\(path)")
+                try? fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try content.data(using: .utf8)?.write(to: url)
+                gitCommit(message: "bootstrap: refactor: Update \(path) for feature \(featureId)", in: projectPath)
+            }
+        }
+    } else {
+        // Implement the feature
+        print("\n--- Implementing Feature \(featureId): \(description) ---")
+        let goal = "Implement feature: \(description)"
+        let step = description
+        var designDocPath = ""
+        var designDocContent = ""
+        var generatedFiles: [[String: String]] = []
+        var failureReason = ""
+        var additionalContext = ""
+
+        for attempt in 1...5 {
+            print("\n--- Attempt \(attempt)/5 for Feature \(featureId) ---")
             
-            var designDocPath = ""
-            var designDocContent = ""
-            var generatedFiles: [[String: String]] = []
-            var failureReason = ""
-            var additionalContext = ""
-
-            for attempt in 1...5 {
-                print("\n--- Attempt \(attempt)/5 ---")
-                
-                // 1. Design Phase
-                var designVerified = false
-                if attempt == 1 {
-                    for designAttempt in 1...3 {
-                        print("\n--- Design Attempt \(designAttempt)/3 ---")
-                        
-                        let docPromptText: String
-                        if designAttempt == 1 {
-                             docPromptText = try getPrompt(from: "docwriter.prompt", substitutions: [
-                                "role": docWriterAgent.role, "goal": goal, "step": step, "step_sanitized": step.filter { $0.isLetter || $0.isNumber }
-                            ])
-                        } else {
-                            print("--- Refining Design ---")
-                            docPromptText = try getPrompt(from: "docwriter.prompt", substitutions: [
-                                "role": docWriterAgent.role, "goal": goal, "step": "\(step) (Refinement attempt after failure: \(failureReason))", "step_sanitized": step.filter { $0.isLetter || $0.isNumber }
-                            ])
-                        }
-
-                        let docResponse = try await runAgent(docWriterAgent, docPromptText, client: client, projectDirectory: projectPath, task: step)
-                        guard let designDoc = docResponse["design_document"] as? [String: String],
-                              let path = designDoc["path"], let content = designDoc["content"] else {
-                            print("Warning: DocWriter failed to produce a design document. Retrying...")
-                            failureReason = "DocWriter failed to produce a design document."
-                            continue
-                        }
-                        designDocPath = path
-                        designDocContent = content
-
-                        // Verify Design
-                        let verifyDesignPrompt = try getPrompt(from: "verifier_design.prompt", substitutions: [
-                            "role": verifierAgent.role, "goal": goal, "step": step, "design_document_content": designDocContent
+            // 1. Design Phase
+            var designVerified = false
+            if attempt == 1 {
+                for designAttempt in 1...3 {
+                    print("\n--- Design Attempt \(designAttempt)/3 ---")
+                    
+                    var docPromptText: String
+                    if designAttempt == 1 {
+                        docPromptText = try getPrompt(from: "docwriter.prompt", substitutions: [
+                            "role": docWriterAgent.role, "goal": goal, "step": step, "step_sanitized": String(step.hash)
                         ])
-                        let verifyDesignResponse = try await runAgent(verifierAgent, verifyDesignPrompt, client: client, projectDirectory: projectPath, task: "Verify the design for the step: \(step)")
-                        if let verified = verifyDesignResponse["verified"] as? Bool, verified {
-                            print("Design for step '\(step)' has been verified.")
-                            designVerified = true
-                            failureReason = "" // Clear failure reason
-                            break
-                        } else {
-                            failureReason = "Design verification failed: \(verifyDesignResponse["feedback"] as? String ?? "No feedback")"
-                            print(failureReason)
-                        }
+                    } else {
+                        print("--- Refining Design ---")
+                        docPromptText = try getPrompt(from: "docwriter.prompt", substitutions: [
+                            "role": docWriterAgent.role, "goal": goal, "step": "\(step) (Refinement attempt after failure: \(failureReason))", "step_sanitized": String(step.hash)
+                        ])
                     }
+                    docPromptText += "\nInclude a Test Plan section with strategy, execution steps, and criteria based on: \(testPlan)"
 
-                    if !designVerified {
-                        print("Design phase failed after 3 attempts for step: \(step). Discarding all changes and stopping.")
-                        gitForceCheckout(in: projectPath)
-                        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Design phase failed after 3 attempts. Changes were discarded."])
+                    let docResponse = try await runAgent(docWriterAgent, docPromptText, client: client, projectDirectory: projectPath, task: step)
+                    guard let designDoc = docResponse["design_document"] as? [String: String],
+                          let path = designDoc["path"], let content = designDoc["content"] else {
+                        print("Warning: DocWriter failed to produce a design document. Retrying...")
+                        failureReason = "DocWriter failed to produce a design document."
+                        continue
+                    }
+                    designDocPath = path
+                    designDocContent = content
+
+                    // Verify Design
+                    let verifyDesignPrompt = try getPrompt(from: "verifier_design.prompt", substitutions: [
+                        "role": verifierAgent.role, "goal": goal, "step": step, "design_document_content": designDocContent
+                    ])
+                    let verifyDesignResponse = try await runAgent(verifierAgent, verifyDesignPrompt, client: client, projectDirectory: projectPath, task: "Verify the design for feature \(featureId)")
+                    if let verified = verifyDesignResponse["verified"] as? Bool, verified {
+                        print("Design for feature '\(featureId)' has been verified.")
+                        designVerified = true
+                        failureReason = ""
+                        break
+                    } else {
+                        failureReason = "Design verification failed: \(verifyDesignResponse["feedback"] as? String ?? "No feedback")"
+                        print(failureReason)
                     }
                 }
 
-                // 2. Implementation or Refinement
-                var codeFilesContent = generatedFiles.map { "Path: \($0["path"] ?? "")\n\($0["content"] ?? "")" }.joined(separator: "\n---\n")
-                let activeAgent: Agent
-                let agentPrompt: String
+                if !designVerified {
+                    print("Design phase failed after 3 attempts for feature: \(featureId). Discarding all changes and stopping.")
+                    gitForceCheckout(in: projectPath)
+                    throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Design phase failed after 3 attempts. Changes were discarded."])
+                }
+            }
 
-                if failureReason.isEmpty {
-                    activeAgent = codeGenAgent
-                    agentPrompt = try getPrompt(from: "codegen.prompt", substitutions: [
-                        "role": codeGenAgent.role, "baseDescription": baseDescription, "design_document_content": designDocContent
-                    ])
-                } else {
-                    print("--- Refining Implementation ---")
-                    activeAgent = refinerAgent
-                    
-                    if !additionalContext.isEmpty {
-                        codeFilesContent += "\n\n--- Additional Context: Original Definitions ---\n" + additionalContext
+            // 2. Implementation or Refinement
+            var codeFilesContent = generatedFiles.map { "Path: \($0["path"] ?? "")\n\($0["content"] ?? "")" }.joined(separator: "\n---\n")
+            let activeAgent: Agent
+            let agentPrompt: String
+
+            if failureReason.isEmpty {
+                activeAgent = codeGenAgent
+                agentPrompt = try getPrompt(from: "codegen.prompt", substitutions: [
+                    "role": codeGenAgent.role, "baseDescription": baseDescription, "design_document_content": designDocContent
+                ])
+            } else {
+                print("--- Refining Implementation ---")
+                activeAgent = refinerAgent
+                
+                if !additionalContext.isEmpty {
+                    codeFilesContent += "\n\n--- Additional Context: Original Definitions ---\n" + additionalContext
+                }
+
+                agentPrompt = try getPrompt(from: "refiner.prompt", substitutions: [
+                    "role": refinerAgent.role,
+                    "baseDescription": baseDescription,
+                    "design_document_content": designDocContent,
+                    "failure_reason": failureReason,
+                    "code_files_content": codeFilesContent
+                ])
+            }
+            
+            let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath, task: "Implement feature \(featureId)")
+            
+            if let filesArray = implResponse["files"] as? [[String: String]] {
+                generatedFiles = filesArray
+                for file in filesArray {
+                    if let path = file["path"], let content = file["content"] {
+                        let url = URL(fileURLWithPath: "\(projectPath)/\(path)")
+                        try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try content.data(using: .utf8)?.write(to: url)
+                        print("Generated/Refined: \(path)")
                     }
+                }
+            } else {
+                print("Warning: \(activeAgent.name) provided no files in the response.")
+            }
 
-                    agentPrompt = try getPrompt(from: "refiner.prompt", substitutions: [
+            // 3. Verify Implementation
+            var implementationVerified = false
+            for implAttempt in 1...3 {
+                print("--- Implementation Verification Attempt \(implAttempt)/3 ---")
+                let updatedCodeFilesContent = generatedFiles.map { "Path: \($0["path"] ?? "")\n\($0["content"] ?? "")" }.joined(separator: "\n---\n")
+                let verifyImplPrompt = try getPrompt(from: "verifier_impl.prompt", substitutions: [
+                    "design_document_content": designDocContent, "code_files_content": updatedCodeFilesContent
+                ])
+                let verifyImplResponse = try await runAgent(verifierAgent, verifyImplPrompt, client: client, projectDirectory: projectPath, task: "Verify the implementation for feature \(featureId)")
+                if let verified = verifyImplResponse["verified"] as? Bool, verified {
+                    print("Implementation for feature '\(featureId)' has been verified.")
+                    failureReason = ""
+                    implementationVerified = true
+                    break
+                } else {
+                    failureReason = "Implementation verification failed: \(verifyImplResponse["feedback"] as? String ?? "No feedback")"
+                    print(failureReason)
+                    // Refine based on feedback
+                    print("--- Refining Implementation based on verification feedback ---")
+                    let activeAgent = refinerAgent
+                    let agentPrompt = try getPrompt(from: "refiner.prompt", substitutions: [
                         "role": refinerAgent.role,
                         "baseDescription": baseDescription,
                         "design_document_content": designDocContent,
                         "failure_reason": failureReason,
-                        "code_files_content": codeFilesContent
+                        "code_files_content": updatedCodeFilesContent
                     ])
-                }
-                
-                let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath, task: "Implement the design for the step: \(step)")
-                
-                if let filesArray = implResponse["files"] as? [[String: String]] {
-                    generatedFiles = filesArray
-                    for file in filesArray {
-                        if let path = file["path"], let content = file["content"] {
-                            let url = URL(fileURLWithPath: "\(projectPath)/\(path)")
-                            try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-                            try content.data(using: .utf8)?.write(to: url)
-                            print("Generated/Refined: \(path)")
+                    let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath, task: "Refine the implementation for feature \(featureId)")
+                    if let filesArray = implResponse["files"] as? [[String: String]] {
+                        generatedFiles = filesArray
+                        for file in filesArray {
+                            if let path = file["path"], let content = file["content"] {
+                                let url = URL(fileURLWithPath: "\(projectPath)/\(path)")
+                                try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                                try content.data(using: .utf8)?.write(to: url)
+                                print("Refined: \(path)")
+                            }
                         }
-                    }
-                } else {
-                    print("Warning: \(activeAgent.name) provided no files in the response.")
-                }
-
-                // 3. Verify Implementation
-                var implementationVerified = false
-                for implAttempt in 1...3 {
-                    print("--- Implementation Verification Attempt \(implAttempt)/3 ---")
-                    let updatedCodeFilesContent = generatedFiles.map { "Path: \($0["path"] ?? "")\n\($0["content"] ?? "")" }.joined(separator: "\n---\n")
-                    let verifyImplPrompt = try getPrompt(from: "verifier_impl.prompt", substitutions: [
-                        "design_document_content": designDocContent, "code_files_content": updatedCodeFilesContent
-                    ])
-                    let verifyImplResponse = try await runAgent(verifierAgent, verifyImplPrompt, client: client, projectDirectory: projectPath, task: "Verify the implementation for the step: \(step)")
-                    if let verified = verifyImplResponse["verified"] as? Bool, verified {
-                        print("Implementation for step '\(step)' has been verified.")
-                        failureReason = "" // Clear failure reason
-                        implementationVerified = true
-                        break
                     } else {
-                        failureReason = "Implementation verification failed: \(verifyImplResponse["feedback"] as? String ?? "No feedback")"
-                        print(failureReason)
-                        // Before we retry, let's try to refine the code
-                        print("--- Refining Implementation based on verification feedback ---")
-                        let activeAgent = refinerAgent
-                        let agentPrompt = try getPrompt(from: "refiner.prompt", substitutions: [
-                            "role": refinerAgent.role,
-                            "baseDescription": baseDescription,
-                            "design_document_content": designDocContent,
-                            "failure_reason": failureReason,
-                            "code_files_content": updatedCodeFilesContent
-                        ])
-                        let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath, task: "Refine the implementation for the step: \(step)")
-                        if let filesArray = implResponse["files"] as? [[String: String]] {
-                            generatedFiles = filesArray
-                            for file in filesArray {
-                                if let path = file["path"], let content = file["content"] {
-                                    let url = URL(fileURLWithPath: "\(projectPath)/\(path)")
-                                    try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-                                    try content.data(using: .utf8)?.write(to: url)
-                                    print("Refined: \(path)")
-                                }
-                            }
-                        } else {
-                            print("Warning: \(activeAgent.name) provided no files in the response during refinement.")
-                        }
+                        print("Warning: \(activeAgent.name) provided no files in the response during refinement.")
                     }
                 }
+            }
 
-                if !implementationVerified {
-                    print("Implementation verification failed after 3 attempts for step: \(step). Discarding changes for this step and retrying from scratch.")
-                    gitForceCheckout(in: projectPath)
-                    continue // This will go to the next attempt of the main loop (1...5)
-                }
+            if !implementationVerified {
+                print("Implementation verification failed after 3 attempts for feature: \(featureId). Discarding changes for this feature and retrying from scratch.")
+                gitForceCheckout(in: projectPath)
+                continue
+            }
 
-                // 4. Build and Test
-                let (success, validationOutput) = validateSwiftPackage(in: projectPath)
-                if success {
-                    print("Build and tests passed.")
-                    let designURL = URL(fileURLWithPath: "\(projectPath)/\(designDocPath)")
-                    try fileManager.createDirectory(at: designURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-                    try designDocContent.data(using: .utf8)?.write(to: designURL)
-                    print("Saved design document: \(designDocPath)")
+            // 4. Build and Test (includes regression)
+            let (success, validationOutput) = validateSwiftPackage(in: projectPath)
+            if success {
+                print("Build and tests passed.")
+                let designURL = URL(fileURLWithPath: "\(projectPath)/\(designDocPath)")
+                try fileManager.createDirectory(at: designURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try designDocContent.data(using: .utf8)?.write(to: designURL)
+                print("Saved design document: \(designDocPath)")
 
-                    let commitMessage = "bootstrap: feat: Implement sprint \(sprintNumber) step: \(step)"
-                    gitCommit(message: commitMessage, in: projectPath)
-                    print("Workflow completed successfully for step: \(step).")
-                    break 
-                } else {
-                    failureReason = validationOutput
-                    print("Validation failed. Running ErrorAnalyzerAgent...")
-
-                    let errorAnalysisPrompt = try getPrompt(from: "erroranalyzer.prompt", substitutions: [
-                        "failure_reason": failureReason
-                    ])
-                    
-                    do {
-                        let errorResponse = try await runAgent(errorAnalyzerAgent, errorAnalysisPrompt, client: client, projectDirectory: projectPath, task: "Analyze build failure")
-                        if let analysis = errorResponse["analysis"] as? String {
-                            print("Error analysis received: \(analysis)")
-                            failureReason = "\(analysis)\n\nFull build output:\n\(failureReason)"
-                        } else {
-                            print("Warning: ErrorAnalyzerAgent did not provide a valid analysis.")
-                        }
-
-                        if let relevantFiles = errorResponse["relevant_files"] as? [String] {
-                            print("Error analyzer identified relevant files: \(relevantFiles.joined(separator: ", "))")
-                            additionalContext = "" // Clear previous context
-                            for file in relevantFiles {
-                                let content = readFile(in: projectPath, relativePath: file)
-                                additionalContext += "\n\n--- Original Definition File: \(file) ---\n\(content)"
-                            }
-                        }
-
-                    } catch {
-                        print("ErrorAnalyzerAgent failed: \(error.localizedDescription). Proceeding with original failure reason.")
-                    }
+                let commitMessage = "bootstrap: feat: Implement feature \(featureId): \(step)"
+                gitCommit(message: commitMessage, in: projectPath)
+                print("Workflow completed successfully for feature: \(featureId).")
+                
+                // Update feature status using RequirementsManager
+                let completeDetails = "Set status of id \(featureId) to completed"
+                let completePrompt = try getPrompt(from: "RequirementsManager.prompt", substitutions: ["operation": "update", "feature_details": completeDetails])
+                let completeResponse = try await runAgent(requirementsManagerAgent, completePrompt, client: client, projectDirectory: projectPath, task: "Mark feature \(featureId) as completed")
+                if let status = completeResponse["status"] as? String, status == "success", let updatedFeatures = completeResponse["features"] as? [[String: Any]] {
+                    features = updatedFeatures
+                    let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
+                    try data.write(to: URL(fileURLWithPath: featuresPath))
+                    gitCommit(message: "bootstrap: chore: Mark feature \(featureId) as completed", in: projectPath)
                 }
                 
-                if attempt == 5 {
-                    print("All 5 attempts failed for step: \(step).")
-                    gitForceCheckout(in: projectPath)
-                    throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Workflow failed after 5 attempts. Changes were discarded."])
+                break 
+            } else {
+                failureReason = validationOutput
+                print("Validation failed. Running ErrorAnalyzerAgent...")
+
+                let errorAnalysisPrompt = try getPrompt(from: "erroranalyzer.prompt", substitutions: [
+                    "failure_reason": failureReason
+                ])
+                
+                do {
+                    let errorResponse = try await runAgent(errorAnalyzerAgent, errorAnalysisPrompt, client: client, projectDirectory: projectPath, task: "Analyze build failure for feature \(featureId)")
+                    if let analysis = errorResponse["analysis"] as? String {
+                        print("Error analysis received: \(analysis)")
+                        failureReason = "\(analysis)\n\nFull build output:\n\(failureReason)"
+                    } else {
+                        print("Warning: ErrorAnalyzerAgent did not provide a valid analysis.")
+                    }
+
+                    if let relevantFiles = errorResponse["relevant_files"] as? [String] {
+                        print("Error analyzer identified relevant files: \(relevantFiles.joined(separator: ", "))")
+                        additionalContext = ""
+                        for file in relevantFiles {
+                            let content = readFile(in: projectPath, relativePath: file)
+                            additionalContext += "\n\n--- Original Definition File: \(file) ---\n\(content)"
+                        }
+                    }
+
+                } catch {
+                    print("ErrorAnalyzerAgent failed: \(error.localizedDescription). Proceeding with original failure reason.")
                 }
+            }
+            
+            if attempt == 5 {
+                print("All 5 attempts failed for feature: \(featureId).")
+                gitForceCheckout(in: projectPath)
+                throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Workflow failed after 5 attempts. Changes were discarded."])
             }
         }
     }
-
-    // Plan the next sprint
-    print("\n--- Planning Next Sprint ---")
-    let sprintStatus = currentNextSteps != nil ? "Current sprint implemented. Plan the next sprint." : "Generate initial sprint plan for Sprint 1 as per AgilePlan.md."
-    let agilePlanContent = readFile(in: projectPath, relativePath: "AgilePlan.md")
-    let nextPrompt = try getPrompt(from: "planner.prompt", substitutions: [
-        "role": plannerAgent.role,
-        "baseDescription": baseDescription,
-        "sprintStatus": sprintStatus,
-        "agilePlanContent": agilePlanContent
-    ])
-
-    let nextResponse = try await runAgent(plannerAgent, nextPrompt, client: client, projectDirectory: projectPath, task: "Plan the next sprint.")
-    let outputData = try JSONSerialization.data(withJSONObject: nextResponse, options: .prettyPrinted)
-    try outputData.write(to: URL(fileURLWithPath: nextStepsPath))
-    print("NextSteps.json updated for the next sprint.")
-
-    let commitMessage = "bootstrap: chore: Plan next sprint"
-    gitCommit(message: commitMessage, in: projectPath)
 }
 
 @main

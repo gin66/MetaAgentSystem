@@ -1,1 +1,1 @@
-../../Vision.md
+../../docs/Vision.md
