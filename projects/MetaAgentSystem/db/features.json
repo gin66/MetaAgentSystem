@@ -1,30 +1,30 @@
 [
   {
-    "status" : "pending",
+    "test_plan" : "Verify the structure definition for agent profiles",
     "priority" : 0,
     "description" : "Define Agent Profile Structure",
     "id" : "1",
-    "test_plan" : "Verify the structure definition for agent profiles"
+    "status" : "completed"
   },
   {
+    "status" : "decomposed",
+    "description" : "Implement CRUD Operations for Profiles",
     "test_plan" : "Test create, read, update, and delete operations on profiles",
     "priority" : 1,
-    "description" : "Implement CRUD Operations for Profiles",
-    "id" : "2",
-    "status" : "decomposed"
+    "id" : "2"
   },
   {
-    "priority" : 2,
+    "description" : "Add Validation to Profile Data",
     "status" : "pending",
     "id" : "3",
-    "description" : "Add Validation to Profile Data",
-    "test_plan" : "Ensure validation rules are applied to all profile fields"
+    "test_plan" : "Ensure validation rules are applied to all profile fields",
+    "priority" : 2
   },
   {
-    "id" : "4",
-    "status" : "pending",
     "test_plan" : "Test the UI components for creating and managing agent profiles",
     "description" : "Create User Interface for Agent Profiles",
-    "priority" : 3
+    "priority" : 3,
+    "status" : "pending",
+    "id" : "4"
   }
 ]
