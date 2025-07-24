@@ -1,14 +1,17 @@
 [
   {
-    "description" : "Implement MetaAgentSystem per Vision and StakeholderRequirements",
     "id" : "F-1",
-    "priority" : 0,
     "status" : "decomposed",
+    "priority" : 0,
+    "description" : "Implement MetaAgentSystem per Vision and StakeholderRequirements",
     "test_plan" : "Verify system initializes, agents communicate, and tasks are assigned per Vision.md and StakeholderRequirements.md"
   },
   {
-    "description" : "Initialize database for features\/use cases",
     "id" : "F-1.1",
+    "priority" : 7,
+    "test_plan" : "Verify that the database is correctly initialized",
+    "status" : "decomposed",
+    "description" : "Initialize database for features\/use cases",
     "sub_features" : [
       {
         "test_plan" : "Verify that the created schema matches the specified requirements",
@@ -24,12 +27,13 @@
         "description" : "Connect to the database",
         "priority" : 0
       }
-    ],
-    "priority" : 0,
-    "status" : "decomposed",
-    "test_plan" : "Verify that the database is correctly initialized"
+    ]
   },
   {
+    "priority" : 6,
+    "test_plan" : "Check if agents are loaded with correct IDs and roles",
+    "status" : "decomposed",
+    "description" : "Load initial agents with unique IDs and roles",
     "sub_features" : [
       {
         "test_plan" : "Verify that agents are retrieved correctly with their IDs and roles",
@@ -53,45 +57,40 @@
         "priority" : 0
       }
     ],
-    "id" : "F-1.2",
-    "test_plan" : "Check if agents are loaded with correct IDs and roles",
-    "description" : "Load initial agents with unique IDs and roles",
-    "priority" : 0,
-    "status" : "decomposed"
+    "id" : "F-1.2"
   },
   {
-    "status" : "completed",
-    "priority" : 0,
-    "test_plan" : "Ensure the system starts processing features in order of priority",
     "description" : "Start workflow to process prioritized features",
-    "id" : "F-1.3"
+    "status" : "completed",
+    "test_plan" : "Ensure the system starts processing features in order of priority",
+    "id" : "F-1.3",
+    "priority" : 1
   },
   {
+    "description" : "Implement agent communication via Ollama API",
     "test_plan" : "Test asynchronous communication between agents through the API",
     "id" : "F-1.4",
-    "description" : "Implement agent communication via Ollama API",
-    "priority" : 0,
-    "status" : "pending"
+    "status" : "pending",
+    "priority" : 2
   },
   {
-    "description" : "Ensure all LLM responses use structured JSON output as defined by API's structured output mode",
-    "priority" : 0,
-    "id" : "F-1.5",
     "status" : "pending",
-    "test_plan" : "Test LLM interactions with structured output mode"
+    "test_plan" : "Test LLM interactions with structured output mode",
+    "priority" : 4,
+    "description" : "Ensure all LLM responses use structured JSON output as defined by API's structured output mode",
+    "id" : "F-1.5"
   },
   {
     "id" : "F-1.6",
-    "test_plan" : "Verify agent containerization for process isolation",
     "description" : "Run each agent in an isolated Swift container",
-    "status" : "pending",
-    "priority" : 0
+    "test_plan" : "Verify agent containerization for process isolation",
+    "priority" : 3,
+    "status" : "pending"
   },
   {
-    "priority" : 0,
-    "test_plan" : "Verify that the JSON content is correctly extracted and returned.",
     "id" : "F-1.7",
-    "status" : "pending",
-    "description" : "Output ONLY the extracted JSON content from db\/features.json."
+    "test_plan" : "Verify that the JSON content is correctly extracted and returned.",
+    "priority" : 5,
+    "status" : "pending"
   }
 ]
