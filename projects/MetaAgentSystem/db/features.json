@@ -1,17 +1,6 @@
 [
   {
-    "status" : "decomposed",
-    "test_plan" : {
-      "execution_steps" : [
-        "Review each feature for Test Plan.",
-        "Verify completeness of the plan."
-      ],
-      "strategy" : "Manual verification",
-      "criteria" : "All features have complete Test Plans."
-    },
     "id" : "F-2",
-    "priority" : 1,
-    "description" : "Test Plan Management",
     "sub_features" : [
       {
         "test_plan" : "Create a standardized template for generating test plans for all features.",
@@ -27,11 +16,21 @@
         "description" : "Automated Test Execution",
         "priority" : 0
       }
-    ]
+    ],
+    "test_plan" : {
+      "execution_steps" : [
+        "Review each feature for Test Plan.",
+        "Verify completeness of the plan."
+      ],
+      "strategy" : "Manual verification",
+      "criteria" : "All features have complete Test Plans."
+    },
+    "status" : "decomposed",
+    "description" : "Test Plan Management",
+    "priority" : 1
   },
   {
-    "priority" : 0,
-    "id" : "F-5",
+    "description" : "Task Execution Management",
     "test_plan" : {
       "execution_steps" : [
         "Implement and verify task timeout mechanism.",
@@ -43,44 +42,45 @@
       "strategy" : "Comprehensive testing",
       "criteria" : "All sub-features pass their respective test plans."
     },
-    "description" : "Task Execution Management",
+    "id" : "F-5",
     "status" : "decomposed",
     "sub_features" : [
       {
         "test_plan" : "Verify that tasks time out after a predefined duration.",
-        "status" : "pending",
         "id" : "F-5.1",
+        "status" : "pending",
         "description" : "Implement task timeout mechanism.",
         "priority" : 0
       },
       {
         "test_plan" : "Check if the agent re-performs identical actions within a set period.",
-        "status" : "pending",
         "id" : "F-5.2",
+        "status" : "pending",
         "description" : "Add loop detection based on historical data.",
         "priority" : 0
       },
       {
         "test_plan" : "Ensure that task counters reset upon completion or timeout.",
-        "status" : "pending",
         "id" : "F-5.3",
+        "status" : "pending",
         "description" : "Introduce loop counter for each task type.",
         "priority" : 0
       },
       {
         "test_plan" : "Review logs to confirm unique IDs and proper sequence of tasks.",
-        "status" : "pending",
         "id" : "F-5.4",
+        "status" : "pending",
         "description" : "Log all task executions with unique identifiers.",
         "priority" : 0
       },
       {
         "test_plan" : "Validate that the agent halts tasks exceeding this limit.",
-        "status" : "pending",
         "id" : "F-5.5",
+        "status" : "pending",
         "description" : "Establish task maximum iteration limit.",
         "priority" : 0
       }
-    ]
+    ],
+    "priority" : 2
   }
 ]
