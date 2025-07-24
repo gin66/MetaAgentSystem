@@ -427,7 +427,6 @@ StakeholderRequirements.md:
         } else {
             throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create fallback meta-feature."])
         }
-        return
     }
     
     let featureDetails = String(data: try JSONSerialization.data(withJSONObject: initFeatures, options: .prettyPrinted), encoding: .utf8) ?? ""
@@ -466,7 +465,7 @@ StakeholderRequirements.md:
 
         // Process the highest priority pending feature
         guard let featureIndex = features.firstIndex(where: {
-            let status = $0["status"] as? String ?? ""
+            let status = ($0["status"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             return status == "pending" || status.isEmpty
         }) else {
             print("No more pending features to process. Exiting.")
