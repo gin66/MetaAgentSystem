@@ -1,16 +1,49 @@
 [
   {
     "priority" : 0,
-    "status" : "pending",
     "test_plan" : "Verify system initializes, agents communicate, and tasks are assigned per Vision.md and StakeholderRequirements.md",
+    "id" : "F-1",
     "description" : "Implement MetaAgentSystem per Vision and StakeholderRequirements",
-    "id" : "F-1"
+    "status" : "decomposed"
   },
   {
+    "priority" : 0,
+    "id" : "F-1.1",
+    "test_plan" : "Verify that the database is correctly initialized",
     "status" : "pending",
-    "priority" : 1,
+    "description" : "Initialize database for features\/use cases"
+  },
+  {
+    "priority" : 0,
+    "id" : "F-1.2",
+    "status" : "pending",
+    "description" : "Load initial agents with unique IDs and roles",
+    "test_plan" : "Check if agents are loaded with correct IDs and roles"
+  },
+  {
+    "id" : "F-1.3",
+    "description" : "Start workflow to process prioritized features",
+    "test_plan" : "Ensure the system starts processing features in order of priority",
+    "status" : "pending",
+    "priority" : 0
+  },
+  {
+    "id" : "F-1.4",
+    "test_plan" : "Test asynchronous communication between agents through the API",
+    "priority" : 0,
+    "description" : "Implement agent communication via JSON messages using Ollama API",
+    "status" : "pending"
+  },
+  {
+    "test_plan" : "Verify that all outputs from LLM interactions conform to JSON structure",
+    "id" : "F-1.5",
+    "status" : "pending",
+    "description" : "Ensure all LLM responses use structured JSON output as defined by API's structured output mode",
+    "priority" : 0
+  },
+  {
     "description" : "Test Plan Management",
-    "id" : "F-2",
+    "priority" : 1,
     "test_plan" : {
       "execution_steps" : [
         "Review each feature for Test Plan.",
@@ -18,7 +51,9 @@
       ],
       "strategy" : "Manual verification",
       "criteria" : "All features have complete Test Plans."
-    }
+    },
+    "id" : "F-2",
+    "status" : "pending"
   },
   {
     "test_plan" : {
@@ -32,9 +67,9 @@
       "strategy" : "Comprehensive testing",
       "criteria" : "All sub-features pass their respective test plans."
     },
-    "id" : "F-5",
     "status" : "pending",
-    "description" : "Task Execution Management",
-    "priority" : 2
+    "id" : "F-5",
+    "priority" : 2,
+    "description" : "Task Execution Management"
   }
 ]
