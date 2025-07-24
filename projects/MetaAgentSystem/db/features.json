@@ -1,22 +1,5 @@
 [
   {
-    "description" : "Implement dynamic agent-LLM pairing.",
-    "status" : "pending",
-    "test_plan" : {
-      "execution_steps" : [
-        "Create test cases for agent pairings.",
-        "Verify correct assignment of tasks to agents."
-      ],
-      "strategy" : "Unit tests and integration tests",
-      "criteria" : "All test cases pass."
-    },
-    "id" : "F-1",
-    "priority" : 9
-  },
-  {
-    "id" : "F-2",
-    "priority" : 1,
-    "status" : "pending",
     "description" : "Ensure every feature includes a Test Plan.",
     "test_plan" : {
       "execution_steps" : [
@@ -25,38 +8,15 @@
       ],
       "strategy" : "Manual verification",
       "criteria" : "All features have complete Test Plans."
-    }
-  },
-  {
-    "status" : "pending",
-    "test_plan" : {
-      "execution_steps" : [
-        "Simulate API responses.",
-        "Verify JSON structure and correctness."
-      ],
-      "strategy" : "Unit tests",
-      "criteria" : "All test cases pass."
     },
-    "priority" : 8,
-    "id" : "F-3",
-    "description" : "Integrate with Ollama API using structured output mode."
+    "priority" : 1,
+    "id" : "F-2",
+    "status" : "pending"
   },
   {
-    "priority" : 4,
-    "test_plan" : {
-      "execution_steps" : [
-        "Create container environments.",
-        "Verify isolation and functionality."
-      ],
-      "strategy" : "Integration tests",
-      "criteria" : "All test cases pass."
-    },
-    "status" : "pending",
-    "id" : "F-4",
-    "description" : "Run agents in isolated Swift containers."
-  },
-  {
+    "description" : "Prevent infinite loops in agent tasks.",
     "id" : "F-5",
+    "priority" : 2,
     "test_plan" : {
       "execution_steps" : [
         "Simulate tasks with potential loops.",
@@ -65,12 +25,35 @@
       "strategy" : "Unit and integration tests",
       "criteria" : "No infinite loops detected."
     },
-    "status" : "pending",
-    "priority" : 3,
-    "description" : "Prevent infinite loops in agent tasks."
+    "status" : "pending"
   },
   {
-    "description" : "Decompose non-atomic features along hierarchical system design.",
+    "priority" : 3,
+    "description" : "Prevent endless loops in agent tasks.",
+    "status" : "pending",
+    "id" : "F-10",
+    "test_plan" : {
+      "execution_steps" : [
+        "Prevent endless loops of rework or over-optimization."
+      ],
+      "strategy" : "Unit and integration tests",
+      "criteria" : "No infinite loops detected."
+    }
+  },
+  {
+    "priority" : 4,
+    "status" : "pending",
+    "test_plan" : {
+      "execution_steps" : [
+        "Break non-atomic features (requiring changes to more than one file) into groups for parallel implementation by independent agents."
+      ],
+      "strategy" : "Unit and integration tests",
+      "criteria" : "All test cases pass."
+    },
+    "id" : "F-9",
+    "description" : "Decompose non-atomic features along hierarchical system design."
+  },
+  {
     "status" : "pending",
     "test_plan" : {
       "execution_steps" : [
@@ -81,10 +64,11 @@
       "criteria" : "All decompositions are correct and adhere to the hierarchy limit of 5 sub-elements per level."
     },
     "id" : "F-6",
-    "priority" : 10
+    "description" : "Decompose non-atomic features along hierarchical system design.",
+    "priority" : 5
   },
   {
-    "status" : "pending",
+    "id" : "F-7",
     "test_plan" : {
       "execution_steps" : [
         "Simulate architectural changes.",
@@ -94,46 +78,61 @@
       "criteria" : "All test cases pass."
     },
     "description" : "Implement dynamic agent-LLM pairing.",
-    "priority" : 5,
-    "id" : "F-7"
+    "priority" : 6,
+    "status" : "pending"
   },
   {
-    "status" : "pending",
-    "id" : "F-10",
-    "description" : "Prevent endless loops in agent tasks.",
-    "test_plan" : {
-      "execution_steps" : [
-        "Prevent endless loops of rework or over-optimization."
-      ],
-      "strategy" : "Unit and integration tests",
-      "criteria" : "No infinite loops detected."
-    },
-    "priority" : 6
-  },
-  {
-    "id" : "F-9",
-    "priority" : 7,
-    "status" : "pending",
-    "description" : "Decompose non-atomic features along hierarchical system design.",
-    "test_plan" : {
-      "execution_steps" : [
-        "Break non-atomic features (requiring changes to more than one file) into groups for parallel implementation by independent agents."
-      ],
-      "strategy" : "Unit and integration tests",
-      "criteria" : "All test cases pass."
-    }
-  },
-  {
-    "status" : "pending",
     "id" : "F-11",
-    "priority" : 11,
-    "description" : "Implement dynamic agent-LLM pairing.",
     "test_plan" : {
       "execution_steps" : [
         "Implement in Swift for performance and safety."
       ],
       "strategy" : "Unit tests",
       "criteria" : "All test cases pass."
+    },
+    "description" : "Implement dynamic agent-LLM pairing.",
+    "status" : "pending",
+    "priority" : 7
+  },
+  {
+    "priority" : 8,
+    "id" : "F-4",
+    "status" : "pending",
+    "description" : "Run agents in isolated Swift containers.",
+    "test_plan" : {
+      "execution_steps" : [
+        "Create container environments.",
+        "Verify isolation and functionality."
+      ],
+      "strategy" : "Integration tests",
+      "criteria" : "All test cases pass."
     }
+  },
+  {
+    "priority" : 9,
+    "status" : "pending",
+    "description" : "Integrate with Ollama API using structured output mode.",
+    "id" : "F-3",
+    "test_plan" : {
+      "execution_steps" : [
+        "Simulate API responses.",
+        "Verify JSON structure and correctness."
+      ],
+      "strategy" : "Unit tests",
+      "criteria" : "All test cases pass."
+    }
+  },
+  {
+    "id" : "F-1",
+    "description" : "Implement dynamic agent-LLM pairing.",
+    "test_plan" : {
+      "execution_steps" : [
+
+      ],
+      "strategy" : "",
+      "criteria" : ""
+    },
+    "status" : "pending",
+    "priority" : 10
   }
 ]
