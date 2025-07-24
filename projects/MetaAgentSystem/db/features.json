@@ -1,6 +1,6 @@
 [
   {
-    "description" : "Ensure every feature includes a Test Plan.",
+    "status" : "decomposed",
     "test_plan" : {
       "execution_steps" : [
         "Review each feature for Test Plan.",
@@ -9,9 +9,39 @@
       "strategy" : "Manual verification",
       "criteria" : "All features have complete Test Plans."
     },
-    "status" : "pending",
     "id" : "F-2",
-    "priority" : 1
+    "sub_features" : [
+      {
+        "test_plan" : "Create a standardized template for generating test plans for all features.",
+        "id" : "F-2.1",
+        "status" : "pending",
+        "description" : "Test Plan Template Creation",
+        "priority" : 0
+      },
+      {
+        "test_plan" : "Implement automated execution of unit and integration tests as part of the build process.",
+        "id" : "F-2.2",
+        "status" : "pending",
+        "description" : "Automated Test Execution",
+        "priority" : 0
+      },
+      {
+        "test_plan" : "Develop a system to report test coverage metrics for each feature.",
+        "id" : "F-2.3",
+        "status" : "pending",
+        "description" : "Test Coverage Reporting",
+        "priority" : 0
+      },
+      {
+        "test_plan" : "Set up regression testing to ensure that new changes do not break existing functionality.",
+        "id" : "F-2.4",
+        "status" : "pending",
+        "description" : "Regression Testing Setup",
+        "priority" : 0
+      }
+    ],
+    "priority" : 1,
+    "description" : "Ensure every feature includes a Test Plan."
   },
   {
     "description" : "Decompose non-atomic features along hierarchical system design.",
@@ -22,13 +52,12 @@
       "strategy" : "Unit and integration tests",
       "criteria" : "All test cases pass."
     },
-    "id" : "F-9",
     "status" : "pending",
+    "id" : "F-9",
     "priority" : 2
   },
   {
-    "priority" : 3,
-    "status" : "pending",
+    "description" : "Decompose non-atomic features along hierarchical system design.",
     "test_plan" : {
       "execution_steps" : [
         "Review feature decomposition.",
@@ -38,9 +67,12 @@
       "criteria" : "All decompositions are correct and adhere to the hierarchy limit of 5 sub-elements per level."
     },
     "id" : "F-6",
-    "description" : "Decompose non-atomic features along hierarchical system design."
+    "status" : "pending",
+    "priority" : 3
   },
   {
+    "description" : "Prevent infinite loops in agent tasks.",
+    "id" : "F-5",
     "test_plan" : {
       "execution_steps" : [
         "Simulate tasks with potential loops.",
@@ -49,14 +81,13 @@
       "strategy" : "Unit and integration tests",
       "criteria" : "No infinite loops detected."
     },
-    "status" : "pending",
-    "description" : "Prevent infinite loops in agent tasks.",
     "priority" : 4,
-    "id" : "F-5"
+    "status" : "pending"
   },
   {
-    "description" : "Prevent endless loops in agent tasks.",
     "status" : "pending",
+    "description" : "Prevent endless loops in agent tasks.",
+    "id" : "F-10",
     "test_plan" : {
       "execution_steps" : [
         "Prevent endless loops of rework or over-optimization."
@@ -64,12 +95,67 @@
       "strategy" : "Unit and integration tests",
       "criteria" : "No infinite loops detected."
     },
-    "id" : "F-10",
     "priority" : 5
   },
   {
-    "priority" : 6,
+    "description" : "Implement dynamic agent-LLM pairing.",
+    "test_plan" : {
+      "execution_steps" : [
+        "Simulate architectural changes.",
+        "Verify correct implementation of refactor."
+      ],
+      "strategy" : "Unit and integration tests",
+      "criteria" : "All test cases pass."
+    },
     "id" : "F-7",
+    "status" : "pending",
+    "priority" : 6
+  },
+  {
+    "priority" : 0,
+    "test_plan" : {
+      "execution_steps" : [
+        "Simulate architectural changes.",
+        "Verify correct implementation of refactor."
+      ],
+      "strategy" : "Unit and integration tests",
+      "criteria" : "All test cases pass."
+    },
+    "id" : "F-7.1",
+    "status" : "pending",
+    "description" : "Implement dynamic agent-LLM pairing."
+  },
+  {
+    "test_plan" : {
+      "execution_steps" : [
+        "Simulate architectural changes.",
+        "Verify correct implementation of refactor."
+      ],
+      "strategy" : "Unit and integration tests",
+      "criteria" : "All test cases pass."
+    },
+    "priority" : 0,
+    "status" : "pending",
+    "description" : "Implement dynamic agent-LLM pairing.",
+    "id" : "F-7.2"
+  },
+  {
+    "priority" : 0,
+    "id" : "F-7.3",
+    "description" : "Implement dynamic agent-LLM pairing.",
+    "status" : "pending",
+    "test_plan" : {
+      "execution_steps" : [
+        "Simulate architectural changes.",
+        "Verify correct implementation of refactor."
+      ],
+      "strategy" : "Unit and integration tests",
+      "criteria" : "All test cases pass."
+    }
+  },
+  {
+    "id" : "F-7.4",
+    "priority" : 0,
     "status" : "pending",
     "description" : "Implement dynamic agent-LLM pairing.",
     "test_plan" : {
@@ -82,57 +168,17 @@
     }
   },
   {
-    "test_plan" : {
-      "execution_steps" : [
-        "Implement in Swift for performance and safety."
-      ],
-      "strategy" : "Unit tests",
-      "criteria" : "All test cases pass."
-    },
+    "priority" : 0,
     "description" : "Implement dynamic agent-LLM pairing.",
     "status" : "pending",
-    "id" : "F-11",
-    "priority" : 7
-  },
-  {
-    "priority" : 8,
-    "status" : "pending",
-    "id" : "F-3",
-    "description" : "Integrate with Ollama API using structured output mode.",
+    "id" : "F-7.5",
     "test_plan" : {
       "execution_steps" : [
-        "Simulate API responses.",
-        "Verify JSON structure and correctness."
+        "Simulate architectural changes.",
+        "Verify correct implementation of refactor."
       ],
-      "strategy" : "Unit tests",
+      "strategy" : "Unit and integration tests",
       "criteria" : "All test cases pass."
     }
-  },
-  {
-    "description" : "Run agents in isolated Swift containers.",
-    "priority" : 9,
-    "test_plan" : {
-      "execution_steps" : [
-        "Create container environments.",
-        "Verify isolation and functionality."
-      ],
-      "strategy" : "Integration tests",
-      "criteria" : "All test cases pass."
-    },
-    "id" : "F-4",
-    "status" : "pending"
-  },
-  {
-    "description" : "Ensure every feature includes a Test Plan.",
-    "status" : "",
-    "priority" : 10,
-    "test_plan" : {
-      "execution_steps" : [
-
-      ],
-      "strategy" : "",
-      "criteria" : ""
-    },
-    "id" : "F-1"
   }
 ]
