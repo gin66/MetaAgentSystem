@@ -391,8 +391,19 @@ All file paths are relative to the project root: \(projectPath).
     if let status = readResponse["status"] as? String, status == "success", let readFeatures = readResponse["features"] as? [[String: Any]] {
         features = readFeatures
     } else {
-//        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to read features."])
+        // Silently fail, features will be empty, and initialization will run.
     }
+
+    // Check for inconsistent state: features exist, but none are pending.
+    let hasPending = features.contains {
+        let status = ($0["status"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return status == "pending" || status.isEmpty
+    }
+    if !features.isEmpty && !hasPending {
+        print("Warning: Feature database contains features, but none are in 'pending' state. Re-initializing feature database.")
+        features = []
+    }
+
 // Initialize features if empty using FeatureInitializer
 if features.isEmpty {
     print("\n--- Initializing Feature Database with FeatureInitializer ---")
