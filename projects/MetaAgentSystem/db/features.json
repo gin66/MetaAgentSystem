@@ -1,13 +1,14 @@
 [
   {
     "test_plan" : "Verify system initializes, agents communicate, and tasks are assigned per Vision.md and StakeholderRequirements.md",
-    "priority" : 0,
-    "status" : "decomposed",
     "id" : "F-1",
-    "description" : "Implement MetaAgentSystem per Vision and StakeholderRequirements"
+    "priority" : 0,
+    "description" : "Implement MetaAgentSystem per Vision and StakeholderRequirements",
+    "status" : "decomposed"
   },
   {
-    "priority" : 0,
+    "status" : "decomposed",
+    "description" : "Initialize database for features\/use cases",
     "sub_features" : [
       {
         "test_plan" : "Verify that the created schema matches the specified requirements",
@@ -24,44 +25,65 @@
         "priority" : 0
       }
     ],
-    "test_plan" : "Verify that the database is correctly initialized",
+    "priority" : 0,
     "id" : "F-1.1",
-    "description" : "Initialize database for features\/use cases",
-    "status" : "decomposed"
+    "test_plan" : "Verify that the database is correctly initialized"
   },
   {
-    "status" : "pending",
-    "test_plan" : "Check if agents are loaded with correct IDs and roles",
+    "status" : "decomposed",
     "priority" : 0,
+    "description" : "Load initial agents with unique IDs and roles",
+    "sub_features" : [
+      {
+        "test_plan" : "Verify that agents are retrieved correctly with their IDs and roles",
+        "id" : "F-1.2.1",
+        "status" : "pending",
+        "description" : "Retrieve agent data from database",
+        "priority" : 0
+      },
+      {
+        "test_plan" : "Check if the loaded agent matches its corresponding record in the database",
+        "id" : "F-1.2.2",
+        "status" : "pending",
+        "description" : "Load each agent into system memory",
+        "priority" : 0
+      },
+      {
+        "test_plan" : "Verify that assigned tasks correspond with agent roles and IDs",
+        "id" : "F-1.2.3",
+        "status" : "pending",
+        "description" : "Assign initial tasks to loaded agents",
+        "priority" : 0
+      }
+    ],
     "id" : "F-1.2",
-    "description" : "Load initial agents with unique IDs and roles"
+    "test_plan" : "Check if agents are loaded with correct IDs and roles"
   },
   {
-    "id" : "F-1.3",
     "priority" : 0,
+    "test_plan" : "Ensure the system starts processing features in order of priority",
     "status" : "pending",
     "description" : "Start workflow to process prioritized features",
-    "test_plan" : "Ensure the system starts processing features in order of priority"
+    "id" : "F-1.3"
   },
   {
+    "priority" : 0,
+    "id" : "F-1.4",
     "test_plan" : "Test asynchronous communication between agents through the API",
     "status" : "pending",
-    "priority" : 0,
-    "description" : "Implement agent communication via JSON messages using Ollama API",
-    "id" : "F-1.4"
+    "description" : "Implement agent communication via JSON messages using Ollama API"
   },
   {
-    "description" : "Ensure all LLM responses use structured JSON output as defined by API's structured output mode",
-    "priority" : 0,
-    "id" : "F-1.5",
-    "test_plan" : "Verify that all outputs from LLM interactions conform to JSON structure",
-    "status" : "pending"
-  },
-  {
-    "id" : "F-2",
-    "priority" : 1,
     "status" : "pending",
+    "test_plan" : "Verify that all outputs from LLM interactions conform to JSON structure",
+    "id" : "F-1.5",
+    "priority" : 0,
+    "description" : "Ensure all LLM responses use structured JSON output as defined by API's structured output mode"
+  },
+  {
     "description" : "Test Plan Management",
+    "priority" : 1,
+    "id" : "F-2",
     "test_plan" : {
       "execution_steps" : [
         "Review each feature for Test Plan.",
@@ -69,7 +91,8 @@
       ],
       "strategy" : "Manual verification",
       "criteria" : "All features have complete Test Plans."
-    }
+    },
+    "status" : "pending"
   },
   {
     "description" : "Task Execution Management",
@@ -84,8 +107,8 @@
       "strategy" : "Comprehensive testing",
       "criteria" : "All sub-features pass their respective test plans."
     },
-    "status" : "pending",
     "priority" : 2,
-    "id" : "F-5"
+    "id" : "F-5",
+    "status" : "pending"
   }
 ]
