@@ -408,7 +408,18 @@ StakeholderRequirements.md:
     let initPrompt = try getPrompt(byName: "FeatureInitializer", substitutions: ["documents_content": documentsContent])
     let initResponse = try await runAgent(featureInitializerAgent, initPrompt, client: client, projectDirectory: projectPath, task: "Initialize features or meta-feature")
     
-    guard let status = initResponse["status"] as? String, status == "success", let initFeatures = initResponse["features"] as? [[String: Any]], !initFeatures.isEmpty else {
+    if let status = initResponse["status"] as? String, status == "success", let initFeatures = initResponse["features"] as? [[String: Any]], !initFeatures.isEmpty {
+        let featureDetails = String(data: try JSONSerialization.data(withJSONObject: initFeatures, options: .prettyPrinted), encoding: .utf8) ?? ""
+        let createPrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "create", "feature_details": featureDetails])
+        let createResponse = try await runAgent(requirementsManagerAgent, createPrompt, client: client, projectDirectory: projectPath, task: "Create initial features")
+        if let status = createResponse["status"] as? String, status == "success", let newFeatures = createResponse["features"] as? [[String: Any]] {
+            features = newFeatures
+            try saveProgress(features: features, featuresPath: featuresPath, commitMessage: "bootstrap: chore: Initialize feature database", projectPath: projectPath)
+            print("Feature database initialized with \(features.count) features.")
+        } else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create initial features."])
+        }
+    } else {
         print("FeatureInitializer failed to produce valid features. Creating fallback meta-feature.")
         let metaFeature = [
             "id": "meta-1",
@@ -427,17 +438,6 @@ StakeholderRequirements.md:
         } else {
             throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create fallback meta-feature."])
         }
-    }
-    
-    let featureDetails = String(data: try JSONSerialization.data(withJSONObject: initFeatures, options: .prettyPrinted), encoding: .utf8) ?? ""
-    let createPrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "create", "feature_details": featureDetails])
-    let createResponse = try await runAgent(requirementsManagerAgent, createPrompt, client: client, projectDirectory: projectPath, task: "Create initial features")
-    if let status = createResponse["status"] as? String, status == "success", let newFeatures = createResponse["features"] as? [[String: Any]] {
-        features = newFeatures
-        try saveProgress(features: features, featuresPath: featuresPath, commitMessage: "bootstrap: chore: Initialize feature database", projectPath: projectPath)
-        print("Feature database initialized with \(features.count) features.")
-    } else {
-        throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create initial features."])
     }
 }
 
