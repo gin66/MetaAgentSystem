@@ -472,7 +472,7 @@ StakeholderRequirements.md:
 
     // Judge clarity and atomicity
     let clarityPrompt = try getPrompt(byName: "ClarityJudge", substitutions: ["feature_description": description])
-    let clarityResponse = try await runAgent(clarityJudgeAgent, clarityPrompt, client: client, projectDirectory: projectPath, task: "Judge clarity for feature \(featureId)")
+    let clarityResponse = try await runAgent(clarityJudgeAgent, clarityPrompt, client: client, projectDirectory: projectPath, task: "Judge clarity for feature \(featureId): \(description)")
     let clear = clarityResponse["clear"] as? Bool ?? false
     let atomic = clarityResponse["atomic"] as? Bool ?? false
     let feedback = clarityResponse["feedback"] as? String ?? ""
@@ -482,7 +482,7 @@ StakeholderRequirements.md:
         print("\n--- Decomposing Feature \(featureId) ---")
         var decompPrompt = try getPrompt(byName: "Decomposition", substitutions: ["feature_description": description])
         decompPrompt += "\nFor each sub-feature, output an array of objects with 'description' and 'test_plan' keys. Ensure max 5 sub-features."
-        let decompResponse = try await runAgent(decompositionAgent, decompPrompt, client: client, projectDirectory: projectPath, task: "Decompose feature \(featureId)")
+        let decompResponse = try await runAgent(decompositionAgent, decompPrompt, client: client, projectDirectory: projectPath, task: "Decompose feature \(featureId): \(description)")
         if let subFeatures = decompResponse["sub_features"] as? [[String: String]] {
             let subFeaturesJSON = String(data: try JSONSerialization.data(withJSONObject: subFeatures, options: .prettyPrinted), encoding: .utf8) ?? ""
             let decomposeDetails = """
@@ -490,7 +490,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
 """
             let decomposePrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "update", "feature_details": decomposeDetails])
             let decomposeResponse = try await runAgent(requirementsManagerAgent, decomposePrompt, client: client, projectDirectory: projectPath, task: "Decompose and update features for \(featureId)")
-            if let status = decomposeResponse["status"] as? String, status == "success", let updatedFeatures = decomposeResponse["features"] as? [[String: Any]] {
+            if let status = decomposeResponse["status"] as? String, status == "success", let updatedFeatures = decompResponse["features"] as? [[String: Any]] {
                 features = updatedFeatures
                 let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
                 try data.write(to: URL(fileURLWithPath: featuresPath))
@@ -503,7 +503,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
             print("\n--- Refactoring Architecture for Feature \(featureId) ---")
             let archContent = readFile(in: projectPath, relativePath: "design/SystemArchitecture.md")
             let refactorPrompt = try getPrompt(byName: "Refactor", substitutions: ["feature_description": description, "architecture_content": archContent])
-            let refactorResponse = try await runAgent(refactorAgent, refactorPrompt, client: client, projectDirectory: projectPath, task: "Refactor for feature \(featureId)")
+            let refactorResponse = try await runAgent(refactorAgent, refactorPrompt, client: client, projectDirectory: projectPath, task: "Refactor for feature \(featureId): \(description)")
             if let updatedDesign = refactorResponse["updated_design"] as? [String: String],
                let path = updatedDesign["path"],
                let content = updatedDesign["content"] {
@@ -560,7 +560,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
                     let verifyDesignPrompt = try getPrompt(byName: "verifier_design", substitutions: [
                         "role": verifierAgent.role, "goal": goal, "step": step, "design_document_content": designDocContent
                     ])
-                    let verifyDesignResponse = try await runAgent(verifierAgent, verifyDesignPrompt, client: client, projectDirectory: projectPath, task: "Verify the design for feature \(featureId)")
+                    let verifyDesignResponse = try await runAgent(verifierAgent, verifyDesignPrompt, client: client, projectDirectory: projectPath, task: "Verify the design for feature \(featureId): \(description)")
                     if let verified = verifyDesignResponse["verified"] as? Bool, verified {
                         print("Design for feature '\(featureId)' has been verified.")
                         designVerified = true
@@ -606,7 +606,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
                 ])
             }
             
-            let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath, task: "Implement feature \(featureId)")
+            let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath, task: goal)
             
             if let filesArray = implResponse["files"] as? [[String: String]] {
                 generatedFiles = filesArray
@@ -630,7 +630,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
                 let verifyImplPrompt = try getPrompt(byName: "verifier_impl", substitutions: [
                     "design_document_content": designDocContent, "code_files_content": updatedCodeFilesContent
                 ])
-                let verifyImplResponse = try await runAgent(verifierAgent, verifyImplPrompt, client: client, projectDirectory: projectPath, task: "Verify the implementation for feature \(featureId)")
+                let verifyImplResponse = try await runAgent(verifierAgent, verifyImplPrompt, client: client, projectDirectory: projectPath, task: "Verify the implementation for feature \(featureId): \(description)")
                 if let verified = verifyImplResponse["verified"] as? Bool, verified {
                     print("Implementation for feature '\(featureId)' has been verified.")
                     failureReason = ""
@@ -706,7 +706,7 @@ Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJS
                 ])
                 
                 do {
-                    let errorResponse = try await runAgent(errorAnalyzerAgent, errorAnalysisPrompt, client: client, projectDirectory: projectPath, task: "Analyze build failure for feature \(featureId)")
+                    let errorResponse = try await runAgent(errorAnalyzerAgent, errorAnalysisPrompt, client: client, projectDirectory: projectPath, task: "Analyze build failure for feature \(featureId): \(description)")
                     if let analysis = errorResponse["analysis"] as? String {
                         print("Error analysis received: \(analysis)")
                         failureReason = "\(analysis)\n\nFull build output:\n\(failureReason)"

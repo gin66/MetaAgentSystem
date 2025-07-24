@@ -77,7 +77,7 @@ The system shall adhere to a rigorous, documentation-driven automated workflow f
 1. **Feature Management**: Maintain and prioritize a database of features/use cases.
 2. **Processing per Feature**: Process prioritized features one at a time or in parallel groups.
     a. **Judge Clarity**: A clarity judge agent determines if the feature is clear and atomic (implementable by changing one file).
-    b. **Decompose if Needed**: If unclear or non-atomic, a decomposition agent breaks it down along a hierarchical system design, into a maximum of five sub-elements per level, creating a group of sub-features.
+    b. **Decompose if Needed**: If unclear or non-atomic, a decomposition agent, provided with the feature's details and relevant files, breaks it down along a hierarchical system design, into a maximum of five sub-elements per level, creating a group of sub-features.
     c. **Refactor if Needed**: If architecture changes are required, activate a refactor agent to update the system architecture.
     d. **Include Test Plan**: Every feature must define a Test Plan with strategy, execution steps, and criteria.
     e. **Implement**: For atomic features, follow the iteration workflow (verify clean state, update design, verify design, implement code, verify implementation, build/test including regression, atomic commit). For groups, implement sub-features parallelly using independent agents.
