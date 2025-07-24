@@ -1,12 +1,16 @@
 [
   {
-    "test_plan" : "Verify system initializes, agents communicate, and tasks are assigned per Vision.md and StakeholderRequirements.md",
     "priority" : 0,
-    "description" : "Implement MetaAgentSystem per Vision and StakeholderRequirements",
     "status" : "pending",
+    "test_plan" : "Verify system initializes, agents communicate, and tasks are assigned per Vision.md and StakeholderRequirements.md",
+    "description" : "Implement MetaAgentSystem per Vision and StakeholderRequirements",
     "id" : "F-1"
   },
   {
+    "status" : "pending",
+    "priority" : 1,
+    "description" : "Test Plan Management",
+    "id" : "F-2",
     "test_plan" : {
       "execution_steps" : [
         "Review each feature for Test Plan.",
@@ -14,14 +18,9 @@
       ],
       "strategy" : "Manual verification",
       "criteria" : "All features have complete Test Plans."
-    },
-    "id" : "F-2",
-    "status" : "pending",
-    "priority" : 1,
-    "description" : "Test Plan Management"
+    }
   },
   {
-    "priority" : 2,
     "test_plan" : {
       "execution_steps" : [
         "Implement and verify task timeout mechanism.",
@@ -34,7 +33,8 @@
       "criteria" : "All sub-features pass their respective test plans."
     },
     "id" : "F-5",
+    "status" : "pending",
     "description" : "Task Execution Management",
-    "status" : "pending"
+    "priority" : 2
   }
 ]
