@@ -83,6 +83,14 @@ func gitCommit(message: String, in directory: String) {
     }
 }
 
+func saveProgress(features: [[String: Any]], featuresPath: String, commitMessage: String, projectPath: String) throws {
+    let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
+    try data.write(to: URL(fileURLWithPath: featuresPath))
+    gitCommit(message: commitMessage, in: projectPath)
+}
+
+
+
 // MARK: - Swift Package Validation
 func validateSwiftPackage(in directory: String) -> (Bool, String) {
     print("Validating Swift package: Building and running tests...")
@@ -246,7 +254,7 @@ func callOllama(
 
   guard let responseString = json["response"] as? String,
     let responseData = responseString.data(using: .utf8),
-    let result = try JSONSerialization.jsonObject(with: responseData) as? [String: Any]
+    var result = try JSONSerialization.jsonObject(with: responseData) as? [String: Any]
   else {
     let errorDescription = "Failed to parse LLM response: \(rawString)"
     print(errorDescription)
@@ -254,6 +262,7 @@ func callOllama(
     throw NSError(
       domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: errorDescription])
   }
+  result["status"] = "success"
 
   print("Successfully parsed Ollama response.")
   return result
@@ -280,7 +289,7 @@ func runAgent(
   
   let configResponse = try await callOllama(client: client, prompt: configPrompt, system: systemPrompt, model: configManagerAgent.model)
   
-  guard let relevantFiles = configResponse["files"] as? [String] else {
+  guard let status = configResponse["status"] as? String, status == "success", let relevantFiles = configResponse["files"] as? [String] else {
       throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "ConfigurationManager failed to produce a file list."])
   }
   
@@ -398,7 +407,7 @@ StakeholderRequirements.md:
     let initPrompt = try getPrompt(byName: "FeatureInitializer", substitutions: ["documents_content": documentsContent])
     let initResponse = try await runAgent(featureInitializerAgent, initPrompt, client: client, projectDirectory: projectPath, task: "Initialize features or meta-feature")
     
-    guard let initFeatures = initResponse["features"] as? [[String: Any]], !initFeatures.isEmpty else {
+    guard let status = initResponse["status"] as? String, status == "success", let initFeatures = initResponse["features"] as? [[String: Any]], !initFeatures.isEmpty else {
         print("FeatureInitializer failed to produce valid features. Creating fallback meta-feature.")
         let metaFeature = [
             "id": "meta-1",
@@ -412,9 +421,7 @@ StakeholderRequirements.md:
         let createResponse = try await runAgent(requirementsManagerAgent, createPrompt, client: client, projectDirectory: projectPath, task: "Create fallback meta-feature")
         if let status = createResponse["status"] as? String, status == "success", let newFeatures = createResponse["features"] as? [[String: Any]] {
             features = newFeatures
-            let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
-            try data.write(to: URL(fileURLWithPath: featuresPath))
-            gitCommit(message: "bootstrap: chore: Initialize feature database with meta-feature", in: projectPath)
+            try saveProgress(features: features, featuresPath: featuresPath, commitMessage: "bootstrap: chore: Initialize feature database with meta-feature", projectPath: projectPath)
             print("Feature database initialized with meta-feature.")
         } else {
             throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create fallback meta-feature."])
@@ -427,9 +434,7 @@ StakeholderRequirements.md:
     let createResponse = try await runAgent(requirementsManagerAgent, createPrompt, client: client, projectDirectory: projectPath, task: "Create initial features")
     if let status = createResponse["status"] as? String, status == "success", let newFeatures = createResponse["features"] as? [[String: Any]] {
         features = newFeatures
-        let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
-        try data.write(to: URL(fileURLWithPath: featuresPath))
-        gitCommit(message: "bootstrap: chore: Initialize feature database", in: projectPath)
+        try saveProgress(features: features, featuresPath: featuresPath, commitMessage: "bootstrap: chore: Initialize feature database", projectPath: projectPath)
         print("Feature database initialized with \(features.count) features.")
     } else {
         throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create initial features."])
@@ -443,15 +448,13 @@ StakeholderRequirements.md:
     let criteria = "urgency, impact, dependencies"
     let prioritizerPrompt = try getPrompt(byName: "Prioritizer", substitutions: ["features_list": featuresList, "criteria": criteria])
     let prioritizerResponse = try await runAgent(prioritizerAgent, prioritizerPrompt, client: client, projectDirectory: projectPath, task: "Prioritize features")
-    if let prioritized = prioritizerResponse["prioritized_features"] as? [[String: Any]] {
+    if let status = prioritizerResponse["status"] as? String, status == "success", let prioritized = prioritizerResponse["prioritized_features"] as? [[String: Any]] {
         let priorityUpdates = String(data: try JSONSerialization.data(withJSONObject: prioritized, options: .prettyPrinted), encoding: .utf8) ?? ""
         let updatePriorityPrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "update", "feature_details": priorityUpdates])
         let updatePriorityResponse = try await runAgent(requirementsManagerAgent, updatePriorityPrompt, client: client, projectDirectory: projectPath, task: "Update feature priorities")
         if let status = updatePriorityResponse["status"] as? String, status == "success", let updatedFeatures = updatePriorityResponse["features"] as? [[String: Any]] {
             features = updatedFeatures
-            let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
-            try data.write(to: URL(fileURLWithPath: featuresPath))
-            gitCommit(message: "bootstrap: chore: Update feature priorities", in: projectPath)
+            try saveProgress(features: features, featuresPath: featuresPath, commitMessage: "bootstrap: chore: Update feature priorities", projectPath: projectPath)
         }
     }
 
@@ -488,7 +491,7 @@ StakeholderRequirements.md:
             var decompPrompt = try getPrompt(byName: "Decomposition", substitutions: ["feature_description": description])
             decompPrompt += "\nFor each sub-feature, output an array of objects with 'description' and 'test_plan' keys. Ensure max 5 sub-features."
             let decompResponse = try await runAgent(decompositionAgent, decompPrompt, client: client, projectDirectory: projectPath, task: "Decompose feature \(featureId): \(description)")
-            if let subFeatures = decompResponse["sub_features"] as? [[String: String]] {
+            if let status = decompResponse["status"] as? String, status == "success", let subFeatures = decompResponse["sub_features"] as? [[String: String]] {
                 let subFeaturesJSON = String(data: try JSONSerialization.data(withJSONObject: subFeatures, options: .prettyPrinted), encoding: .utf8) ?? ""
                 let decomposeDetails = """
     Update id \(featureId) status to 'decomposed'. Add sub-features: \(subFeaturesJSON) with ids like \(featureId).1, priority 0, status 'pending'.
@@ -497,9 +500,7 @@ StakeholderRequirements.md:
                 let decomposeResponse = try await runAgent(requirementsManagerAgent, decomposePrompt, client: client, projectDirectory: projectPath, task: "Decompose and update features for \(featureId)")
                 if let status = decomposeResponse["status"] as? String, status == "success", let updatedFeatures = decomposeResponse["features"] as? [[String: Any]] {
                     features = updatedFeatures
-                    let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
-                    try data.write(to: URL(fileURLWithPath: featuresPath))
-                    gitCommit(message: "bootstrap: chore: Decompose feature \(featureId)", in: projectPath)
+                    try saveProgress(features: features, featuresPath: featuresPath, commitMessage: "bootstrap: chore: Decompose feature \(featureId)", projectPath: projectPath)
                 }
             }
 
@@ -509,7 +510,7 @@ StakeholderRequirements.md:
                 let archContent = readFile(in: projectPath, relativePath: "design/SystemArchitecture.md")
                 let refactorPrompt = try getPrompt(byName: "Refactor", substitutions: ["feature_description": description, "architecture_content": archContent])
                 let refactorResponse = try await runAgent(refactorAgent, refactorPrompt, client: client, projectDirectory: projectPath, task: "Refactor for feature \(featureId): \(description)")
-                if let updatedDesign = refactorResponse["updated_design"] as? [String: String],
+                if let status = refactorResponse["status"] as? String, status == "success", let updatedDesign = refactorResponse["updated_design"] as? [String: String],
                    let path = updatedDesign["path"],
                    let content = updatedDesign["content"] {
                     let url = URL(fileURLWithPath: "\(projectPath)/\(path)")
@@ -552,7 +553,7 @@ StakeholderRequirements.md:
                         docPromptText += "\nInclude a Test Plan section with strategy, execution steps, and criteria based on: \(testPlan)"
 
                         let docResponse = try await runAgent(docWriterAgent, docPromptText, client: client, projectDirectory: projectPath, task: step)
-                        guard let designDoc = docResponse["design_document"] as? [String: String],
+                        guard let status = docResponse["status"] as? String, status == "success", let designDoc = docResponse["design_document"] as? [String: String],
                               let path = designDoc["path"], let content = designDoc["content"] else {
                             print("Warning: DocWriter failed to produce a design document. Retrying...")
                             failureReason = "DocWriter failed to produce a design document."
@@ -613,7 +614,7 @@ StakeholderRequirements.md:
                 
                 let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath, task: goal)
                 
-                if let filesArray = implResponse["files"] as? [[String: String]] {
+                if let status = implResponse["status"] as? String, status == "success", let filesArray = implResponse["files"] as? [[String: String]] {
                     generatedFiles = filesArray
                     for file in filesArray {
                         if let path = file["path"], let content = file["content"] {
@@ -655,7 +656,7 @@ StakeholderRequirements.md:
                             "code_files_content": updatedCodeFilesContent
                         ])
                         let implResponse = try await runAgent(activeAgent, agentPrompt, client: client, projectDirectory: projectPath, task: "Refine the implementation for feature \(featureId)")
-                        if let filesArray = implResponse["files"] as? [[String: String]] {
+                        if let status = implResponse["status"] as? String, status == "success", let filesArray = implResponse["files"] as? [[String: String]] {
                             generatedFiles = filesArray
                             for file in filesArray {
                                 if let path = file["path"], let content = file["content"] {
@@ -696,9 +697,7 @@ StakeholderRequirements.md:
                     let completeResponse = try await runAgent(requirementsManagerAgent, completePrompt, client: client, projectDirectory: projectPath, task: "Mark feature \(featureId) as completed")
                     if let status = completeResponse["status"] as? String, status == "success", let updatedFeatures = completeResponse["features"] as? [[String: Any]] {
                         features = updatedFeatures
-                        let data = try JSONSerialization.data(withJSONObject: features, options: .prettyPrinted)
-                        try data.write(to: URL(fileURLWithPath: featuresPath))
-                        gitCommit(message: "bootstrap: chore: Mark feature \(featureId) as completed", in: projectPath)
+                        try saveProgress(features: features, featuresPath: featuresPath, commitMessage: "bootstrap: chore: Mark feature \(featureId) as completed", projectPath: projectPath)
                     }
                     
                     break 
@@ -712,7 +711,7 @@ StakeholderRequirements.md:
                     
                     do {
                         let errorResponse = try await runAgent(errorAnalyzerAgent, errorAnalysisPrompt, client: client, projectDirectory: projectPath, task: "Analyze build failure for feature \(featureId): \(description)")
-                        if let analysis = errorResponse["analysis"] as? String {
+                        if let status = errorResponse["status"] as? String, status == "success", let analysis = errorResponse["analysis"] as? String {
                             print("Error analysis received: \(analysis)")
                             failureReason = "\(analysis)\n\nFull build output:\n\(failureReason)"
                         } else {
