@@ -471,6 +471,15 @@ StakeholderRequirements.md:
 
     // Process all pending features in a loop
     while true {
+        // Reload features from the database at the beginning of each iteration to ensure consistency
+        let readPrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "read", "feature_details": ""])
+        let readResponse = try await runAgent(requirementsManagerAgent, readPrompt, client: client, projectDirectory: projectPath, task: "Read feature database")
+        if let status = readResponse["status"] as? String, status == "success", let readFeatures = readResponse["features"] as? [[String: Any]] {
+            features = readFeatures
+        } else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to read features at the start of the processing loop."])
+        }
+
         // Sort features by priority (lower number = higher priority)
         features.sort { ($0["priority"] as? Int ?? Int.max) < ($1["priority"] as? Int ?? Int.max) }
 
@@ -749,15 +758,6 @@ StakeholderRequirements.md:
                 gitForceCheckout(in: projectPath)
                 throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Workflow failed after 5 attempts. Changes were discarded."])
             }
-        }
-        
-        // Reload features from the database after processing one
-        let readPrompt = try getPrompt(byName: "RequirementsManager", substitutions: ["operation": "read", "feature_details": ""])
-        let readResponse = try await runAgent(requirementsManagerAgent, readPrompt, client: client, projectDirectory: projectPath, task: "Read feature database")
-        if let status = readResponse["status"] as? String, status == "success", let readFeatures = readResponse["features"] as? [[String: Any]] {
-            features = readFeatures
-        } else {
-            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to read features after processing a feature."])
         }
     }
 }
