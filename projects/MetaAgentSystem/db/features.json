@@ -1,199 +1,30 @@
 [
   {
-    "id" : "F-1",
-    "status" : "decomposed",
-    "description" : "Implement MetaAgentSystem per Vision and StakeholderRequirements",
+    "status" : "pending",
     "priority" : 0,
-    "test_plan" : "Verify system initializes, agents communicate, and tasks are assigned per Vision.md and StakeholderRequirements.md"
+    "description" : "Define Agent Profile Structure",
+    "id" : "1",
+    "test_plan" : "Verify the structure definition for agent profiles"
   },
   {
-    "status" : "decomposed",
-    "test_plan" : "Verify that the database is correctly initialized",
-    "priority" : 7,
-    "description" : "Initialize database for features\/use cases",
-    "id" : "F-1.1",
-    "sub_features" : [
-      {
-        "test_plan" : "Verify that the created schema matches the specified requirements",
-        "id" : "F-1.1.1",
-        "status" : "pending",
-        "description" : "Create database schema",
-        "priority" : 0
-      },
-      {
-        "test_plan" : "Ensure successful connection using correct credentials and settings",
-        "id" : "F-1.1.2",
-        "status" : "pending",
-        "description" : "Connect to the database",
-        "priority" : 0
-      }
-    ]
-  },
-  {
-    "priority" : 6,
-    "description" : "Load initial agents with unique IDs and roles",
-    "status" : "decomposed",
-    "test_plan" : "Check if agents are loaded with correct IDs and roles",
-    "sub_features" : [
-      {
-        "test_plan" : "Verify that agents are retrieved correctly with their IDs and roles",
-        "id" : "F-1.2.1",
-        "status" : "pending",
-        "description" : "Retrieve agent data from database",
-        "priority" : 0
-      },
-      {
-        "test_plan" : "Check if the loaded agent matches its corresponding record in the database",
-        "id" : "F-1.2.2",
-        "status" : "pending",
-        "description" : "Load each agent into system memory",
-        "priority" : 0
-      },
-      {
-        "test_plan" : "Verify that assigned tasks correspond with agent roles and IDs",
-        "id" : "F-1.2.3",
-        "status" : "pending",
-        "description" : "Assign tasks to agents based on their roles",
-        "priority" : 0
-      }
-    ]
-  },
-  {
-    "status" : "pending",
-    "test_plan" : "Verify that the system starts without errors and initializes all components correctly",
-    "id" : "F-1.3",
-    "priority" : 5,
-    "sub_features" : [
-      {
-        "test_plan" : "Ensure that no errors are thrown during system startup",
-        "id" : "F-1.3.1",
-        "status" : "pending",
-        "description" : "Check for startup errors",
-        "priority" : 0
-      },
-      {
-        "test_plan" : "Verify that all essential components (e.g., database, API) are initialized and ready to use",
-        "id" : "F-1.3.2",
-        "status" : "pending",
-        "description" : "Initialize system components",
-        "priority" : 0
-      }
-    ],
-    "description" : "Start MetaAgentSystem"
-  },
-  {
-    "priority" : 4,
-    "description" : "Use Ollama API for LLM interactions with structured output mode",
-    "status" : "decomposed",
-    "sub_features" : [
-      {
-        "test_plan" : "Verify connection setup to the Ollama API using correct URL and headers",
-        "id" : "F-1.4.1",
-        "status" : "pending",
-        "description" : "Establish connection to Ollama API endpoint"
-      },
-      {
-        "test_plan" : "Ensure request body is correctly structured according to API requirements",
-        "id" : "F-1.4.2",
-        "status" : "pending",
-        "description" : "Prepare JSON request for agent communication"
-      },
-      {
-        "test_plan" : "Verify data transmission and error handling during the request process",
-        "id" : "F-1.4.3",
-        "status" : "pending",
-        "description" : "Send asynchronous request via URLSession"
-      },
-      {
-        "test_plan" : "Ensure proper parsing of returned JSON data into Swift objects",
-        "id" : "F-1.4.4",
-        "status" : "pending",
-        "description" : "Decode JSON response from Ollama API"
-      },
-      {
-        "test_plan" : "Test the system's response to different server responses and ensure appropriate error handling",
-        "id" : "F-1.4.5",
-        "status" : "pending",
-        "description" : "Handle various HTTP status codes and errors gracefully"
-      }
-    ],
-    "id" : "F-1.4",
-    "test_plan" : "Test the system's response to different server responses and ensure appropriate error handling"
-  },
-  {
-    "description" : "Process prioritized features one at a time or in parallel groups.",
-    "sub_features" : [
-      {
-        "test_plan" : "Determine the clarity and atomicity of the features.",
-        "id" : "F-1.5.1",
-        "status" : "pending",
-        "description" : "Judge if the feature is clear and atomic (implementable by changing one file).",
-        "priority" : 0
-      },
-      {
-        "test_plan" : "Break down the feature if it is not clear or atomic.",
-        "id" : "F-1.5.2",
-        "status" : "pending",
-        "description" : "Decompose unclear or non-atomic features along a hierarchical system design, into a maximum of five sub-elements per level, creating a group of sub-features.",
-        "priority" : 0
-      },
-      {
-        "test_plan" : "Refactor the system if required by feature changes.",
-        "id" : "F-1.5.3",
-        "status" : "pending",
-        "description" : "Activate refactor agent to update the system architecture if needed.",
-        "priority" : 0
-      }
-    ],
-    "test_plan" : "Process the features based on their priority.",
-    "status" : "pending",
-    "id" : "F-1.5",
-    "priority" : 3
-  },
-  {
-    "test_plan" : "Handle failures by retrying steps up to five times.",
-    "description" : "Retry on failure: If any step fails, loop back to the preceding step (max five attempts per feature).",
-    "id" : "F-1.6",
-    "priority" : 2,
-    "sub_features" : [
-      {
-        "test_plan" : "Retry failed steps up to five times.",
-        "id" : "F-1.6.1",
-        "status" : "pending",
-        "description" : "If any step fails, loop back to the preceding step (max five attempts per feature).",
-        "priority" : 0
-      },
-      {
-        "test_plan" : "Handle persistent failure by discarding changes.",
-        "id" : "F-1.6.2",
-        "status" : "pending",
-        "description" : "If fails after five attempts, discard changes via git checkout -- . and terminate for manual intervention.",
-        "priority" : 0
-      }
-    ],
-    "status" : "pending"
-  },
-  {
-    "sub_features" : [
-      {
-        "test_plan" : "Verify that all existing tests pass after implementation.",
-        "id" : "F-1.7.1",
-        "status" : "pending",
-        "description" : "Ensure no existing functionality is broken by the new changes.",
-        "priority" : 0
-      },
-      {
-        "test_plan" : "Execute full regression test suite.",
-        "id" : "F-1.7.2",
-        "status" : "pending",
-        "description" : "Run regression test suite to ensure overall system stability.",
-        "priority" : 0
-      }
-    ],
-    "test_plan" : "Run regression tests after implementing new features.",
-    "id" : "F-1.7",
-    "description" : "Regression testing: After implementation, run all existing tests to prevent breaking prior features.",
+    "test_plan" : "Test create, read, update, and delete operations on profiles",
     "priority" : 1,
-    "status" : "pending"
+    "description" : "Implement CRUD Operations for Profiles",
+    "id" : "2",
+    "status" : "decomposed"
+  },
+  {
+    "priority" : 2,
+    "status" : "pending",
+    "id" : "3",
+    "description" : "Add Validation to Profile Data",
+    "test_plan" : "Ensure validation rules are applied to all profile fields"
+  },
+  {
+    "id" : "4",
+    "status" : "pending",
+    "test_plan" : "Test the UI components for creating and managing agent profiles",
+    "description" : "Create User Interface for Agent Profiles",
+    "priority" : 3
   }
 ]
